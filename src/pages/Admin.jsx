@@ -49,11 +49,35 @@ function Admin() {
     else fetchData();
   }, []);
 
-  // Chargement des données
-  const fetchData = () => {
-    axiosClient.get('/products').then(res => setProducts(res.data));
-    axiosClient.get('/admin/orders').then(res => setOrders(res.data));
-    axiosClient.get('/users').then(res => setUsers(res.data));
+  // Chargement des données avec gestion d'erreur
+  const fetchData = async () => {
+    try {
+      const [productsRes, ordersRes, usersRes] = await Promise.allSettled([
+        axiosClient.get('/products'),
+        axiosClient.get('/admin/orders'),
+        axiosClient.get('/users')
+      ]);
+      
+      if (productsRes.status === 'fulfilled') {
+        setProducts(productsRes.value.data);
+      } else {
+        console.error('Erreur produits:', productsRes.reason);
+      }
+      
+      if (ordersRes.status === 'fulfilled') {
+        setOrders(ordersRes.value.data);
+      } else {
+        console.error('Erreur commandes:', ordersRes.reason);
+      }
+      
+      if (usersRes.status === 'fulfilled') {
+        setUsers(usersRes.value.data);
+      } else {
+        console.error('Erreur utilisateurs:', usersRes.reason);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    }
   };
 
   // ============================================
@@ -336,10 +360,10 @@ function Admin() {
   const totalRevenue = orders.reduce((acc, order) => acc + Number(order.total_price || 0), 0);
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] bg-gray-50 font-sans text-gray-900 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)] bg-gray-50 font-sans text-gray-900 overflow-hidden">
       
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-10">
+      <aside className="w-full lg:w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-10 lg:static fixed lg:translate-x-0 -translate-x-full transition-transform duration-300">
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Menu Gestion</span>
         </div>
@@ -371,7 +395,7 @@ function Admin() {
       <div className="flex-1 flex flex-col overflow-hidden relative">
         
         {/* TOP BAR */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm flex-shrink-0">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-8 shadow-sm flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold text-gray-800 capitalize">
               {activeTab === 'dashboard' ? 'Tableau de bord' : activeTab}
@@ -398,7 +422,7 @@ function Admin() {
         </header>
 
         {/* ZONE DE CONTENU */}
-        <main className="flex-1 overflow-y-auto p-8 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50">
           
           {/* VUE DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -468,8 +492,8 @@ function Admin() {
 
           {/* VUE PRODUITS */}
           {activeTab === 'products' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto">
-              <table className="w-full text-sm text-left">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[600px]">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 w-16">Img</th>
@@ -489,6 +513,8 @@ function Admin() {
                               src={p.image_path.startsWith('http') ? p.image_path : storageUrl + p.image_path} 
                               className="w-full h-full object-cover" 
                               alt={p.name}
+                              loading="lazy"
+                              decoding="async"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.parentElement.innerHTML = '📷';
@@ -533,8 +559,8 @@ function Admin() {
 
           {/* VUE COMMANDES */}
           {activeTab === 'orders' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto">
-              <table className="w-full text-sm text-left">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[600px]">
                 <thead className="bg-gray-50 text-gray-500 font-medium">
                   <tr>
                     <th className="px-6 py-4">ID</th>
@@ -587,8 +613,8 @@ function Admin() {
 
           {/* VUE USERS */}
           {activeTab === 'users' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto">
-              <table className="w-full text-sm text-left">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[600px]">
                 <thead className="bg-gray-50 text-gray-500 font-medium">
                   <tr>
                     <th className="px-6 py-4">Nom</th>

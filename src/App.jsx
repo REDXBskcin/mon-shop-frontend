@@ -1,17 +1,29 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import CartSidebar from './components/CartSidebar';
 
-import Home from './pages/Home';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
+// Lazy loading pour améliorer les performances
+const Home = lazy(() => import('./pages/Home'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 import './App.css';
+
+// Composant de chargement
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-600 font-medium">Chargement...</p>
+    </div>
+  </div>
+);
 
 function Layout({ children }) {
   const location = useLocation();
@@ -30,7 +42,9 @@ function Layout({ children }) {
       {/* 3. CONTENU */}
       {/* On ajoute toujours pt-20 car la navbar est fixed partout */}
       <div className={`flex-grow pt-20`}>
-        {children}
+        <Suspense fallback={<LoadingSpinner />}>
+          {children}
+        </Suspense>
       </div>
 
       {/* 4. FOOTER (Optionnel sur l'admin, souvent on le cache pour gagner de la place) */}

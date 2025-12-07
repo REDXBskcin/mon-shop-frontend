@@ -148,12 +148,12 @@ function Checkout() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-2">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 flex items-center gap-2">
         <span>💳</span> Paiement
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         
         {/* FORMULAIRE DE PAIEMENT */}
         <div className="lg:col-span-2">
@@ -189,7 +189,7 @@ function Checkout() {
                   />
                   {errors.cardName && <p className="text-red-200 text-xs mt-1">{errors.cardName}</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <input
                       type="text"
@@ -197,7 +197,7 @@ function Checkout() {
                       value={paymentData.expiryDate}
                       onChange={(e) => setPaymentData({...paymentData, expiryDate: formatExpiryDate(e.target.value)})}
                       maxLength="5"
-                      className="w-full bg-white/20 border border-white/30 rounded-lg px-4 py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
+                      className="w-full bg-white/20 border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm sm:text-base"
                     />
                     {errors.expiryDate && <p className="text-red-200 text-xs mt-1">{errors.expiryDate}</p>}
                   </div>
@@ -208,7 +208,7 @@ function Checkout() {
                       value={paymentData.cvv}
                       onChange={(e) => setPaymentData({...paymentData, cvv: e.target.value.replace(/\D/g, '').substring(0, 3)})}
                       maxLength="3"
-                      className="w-full bg-white/20 border border-white/30 rounded-lg px-4 py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
+                      className="w-full bg-white/20 border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm sm:text-base"
                     />
                     {errors.cvv && <p className="text-red-200 text-xs mt-1">{errors.cvv}</p>}
                   </div>
@@ -229,14 +229,14 @@ function Checkout() {
                     />
                     {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <input
                         type="text"
                         placeholder="Ville"
                         value={paymentData.city}
                         onChange={(e) => setPaymentData({...paymentData, city: e.target.value})}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                       />
                       {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                     </div>
@@ -247,7 +247,7 @@ function Checkout() {
                         value={paymentData.zipCode}
                         onChange={(e) => setPaymentData({...paymentData, zipCode: e.target.value.replace(/\D/g, '').substring(0, 5)})}
                         maxLength="5"
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                       />
                       {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
                     </div>
@@ -282,7 +282,7 @@ function Checkout() {
 
         {/* RÉCAPITULATIF */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sticky top-4">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 sticky top-24">
             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Récapitulatif</h2>
             
             <div className="space-y-3 mb-4">

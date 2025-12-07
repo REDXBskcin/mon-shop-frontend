@@ -22,7 +22,7 @@ function CartSidebar() {
           <motion.div 
             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col font-sans"
+            className="fixed inset-y-0 right-0 w-full sm:max-w-md bg-white shadow-2xl z-50 flex flex-col font-sans"
           >
             <div className="px-6 py-5 bg-white border-b flex justify-between items-center shadow-sm z-10">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -43,7 +43,13 @@ function CartSidebar() {
                     {/* IMAGE MINIATURE */}
                     <div className="h-20 w-20 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
                       {item.image_path ? (
-                          <img src={storageUrl + item.image_path} alt={item.name} className="w-full h-full object-contain p-2" />
+                          <img 
+                            src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} 
+                            alt={item.name} 
+                            className="w-full h-full object-contain p-2" 
+                            loading="lazy"
+                            decoding="async"
+                          />
                       ) : (
                           <span className="text-2xl opacity-20">📦</span>
                       )}

@@ -12,14 +12,19 @@ function Home() {
   const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
   useEffect(() => {
-    setTimeout(() => {
-        axiosClient.get('/products')
-        .then(res => {
-            setProducts(res.data);
-            setLoading(false);
-        })
-        .catch(err => setLoading(false));
-    }, 300);
+    const fetchProducts = async () => {
+      try {
+        const res = await axiosClient.get('/products');
+        setProducts(res.data);
+      } catch (err) {
+        console.error('Erreur lors du chargement des produits:', err);
+        // Optionnel: afficher un message d'erreur à l'utilisateur
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProducts();
   }, []);
 
   const handleAdd = (product) => {
@@ -47,9 +52,17 @@ function Home() {
       {/* --- HERO SECTION FUTURISTE --- */}
       <div className="relative bg-gray-900 overflow-hidden perspective-1000">
         
-        {/* Fonds animés (Blobs) */}
-        <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity }} className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <motion.div animate={{ scale: [1, 1.1, 1], x: [0, 50, 0] }} transition={{ duration: 15, repeat: Infinity }} className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
+        {/* Fonds animés (Blobs) - Optimisé pour réduire la charge */}
+        <motion.div 
+          animate={{ scale: [1, 1.15, 1], rotate: [0, 45, 0] }} 
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }} 
+          className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] sm:w-[800px] sm:h-[800px] bg-indigo-600/15 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none will-change-transform" 
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.08, 1], x: [0, 30, 0] }} 
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} 
+          className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-purple-600/15 rounded-full blur-[80px] sm:blur-[100px] pointer-events-none will-change-transform" 
+        />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             
@@ -83,9 +96,9 @@ function Home() {
                {/* Carte Principale */}
                <motion.div 
                  initial={{ rotateY: 15, rotateX: 10, opacity: 0 }} 
-                 animate={{ rotateY: 0, rotateX: 0, opacity: 1, y: [0, -15, 0] }} 
-                 transition={{ duration: 1, opacity: {duration: 1}, y: {repeat: Infinity, duration: 6, ease: "easeInOut"} }}
-                 className="w-80 h-96 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 relative z-10"
+                 animate={{ rotateY: 0, rotateX: 0, opacity: 1, y: [0, -10, 0] }} 
+                 transition={{ duration: 0.8, opacity: {duration: 0.8}, y: {repeat: Infinity, duration: 8, ease: "easeInOut"} }}
+                 className="w-80 h-96 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 relative z-10 will-change-transform"
                >
                   <div className="h-40 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-6 opacity-80 relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30"></div>
@@ -101,9 +114,9 @@ function Home() {
 
                {/* Carte Arrière (Flottante) */}
                <motion.div 
-                 animate={{ y: [0, 20, 0], rotate: [0, 5, 0] }}
-                 transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 0.5 }}
-                 className="absolute top-10 right-10 w-64 h-72 bg-gray-800/80 backdrop-blur-md border border-gray-700 rounded-3xl shadow-xl -z-10 p-5"
+                 animate={{ y: [0, 15, 0], rotate: [0, 3, 0] }}
+                 transition={{ repeat: Infinity, duration: 10, ease: "easeInOut", delay: 0.5 }}
+                 className="absolute top-10 right-10 w-64 h-72 bg-gray-800/80 backdrop-blur-md border border-gray-700 rounded-3xl shadow-xl -z-10 p-5 will-change-transform"
                >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -117,11 +130,19 @@ function Home() {
                   </div>
                </motion.div>
 
-               {/* Elements décoratifs flottants */}
-               <motion.div animate={{ y: [0, -30, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="absolute bottom-20 left-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 text-white font-mono text-xs shadow-lg">
+               {/* Elements décoratifs flottants - Optimisés */}
+               <motion.div 
+                 animate={{ y: [0, -20, 0] }} 
+                 transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }} 
+                 className="absolute bottom-20 left-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 text-white font-mono text-xs shadow-lg will-change-transform"
+               >
                   &lt;Code /&gt;
                </motion.div>
-               <motion.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 5 }} className="absolute top-0 right-20 bg-indigo-600 p-3 rounded-xl shadow-lg shadow-indigo-600/40">
+               <motion.div 
+                 animate={{ y: [0, 15, 0] }} 
+                 transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }} 
+                 className="absolute top-0 right-20 bg-indigo-600 p-3 rounded-xl shadow-lg shadow-indigo-600/40 will-change-transform"
+               >
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                </motion.div>
             </div>
@@ -144,8 +165,11 @@ function Home() {
                 {products.map(product => (
                     <motion.div 
                         key={product.id}
-                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                        whileHover={{ y: -10 }}
+                        initial={{ opacity: 0, y: 20 }} 
+                        whileInView={{ opacity: 1, y: 0 }} 
+                        viewport={{ once: true, margin: "-50px" }}
+                        whileHover={{ y: -8 }}
+                        transition={{ duration: 0.3 }}
                         className="group bg-white rounded-3xl p-4 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 border border-gray-100 flex flex-col h-full"
                     >
                         {/* Image */}
@@ -156,6 +180,8 @@ function Home() {
                                     src={product.image_path.startsWith('http') ? product.image_path : storageUrl + product.image_path} 
                                     alt={product.name} 
                                     className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500" 
+                                    loading="lazy"
+                                    decoding="async"
                                     onError={(e) => {
                                       e.target.style.display = 'none';
                                       const fallback = e.target.nextElementSibling;

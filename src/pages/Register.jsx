@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axiosClient from '../axios-client';
 
 function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -13,7 +14,7 @@ function Register() {
     setError(null);
     setIsLoading(true);
 
-    aaxiosClient.post('/signup', payload)
+    axiosClient.post('/register', formData)
       .then(res => {
         alert("Compte créé !");
         navigate('/login');
@@ -30,14 +31,14 @@ function Register() {
       {/* --- FOND ANIMÉ --- */}
       <div className="absolute inset-0 z-0">
         <motion.div 
-            animate={{ scale: [1, 1.1, 1], x: [0, -50, 0] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-            className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-cyan-600/20 rounded-full blur-[100px]"
+            animate={{ scale: [1, 1.08, 1], x: [0, -30, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[10%] right-[20%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] bg-cyan-600/15 rounded-full blur-[80px] sm:blur-[100px] will-change-transform"
         />
         <motion.div 
-            animate={{ scale: [1, 1.3, 1], x: [0, 50, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-[10%] left-[10%] w-[500px] h-[500px] bg-pink-600/20 rounded-full blur-[120px]"
+            animate={{ scale: [1, 1.15, 1], x: [0, 30, 0] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-[10%] left-[10%] w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] bg-pink-600/15 rounded-full blur-[90px] sm:blur-[120px] will-change-transform"
         />
       </div>
 
@@ -66,6 +67,7 @@ function Register() {
                     type="text" required
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                     placeholder="Nom complet"
+                    value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                 />
             </div>
@@ -75,6 +77,7 @@ function Register() {
                     type="email" required
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                     placeholder="Adresse Email"
+                    value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
                 />
             </div>
@@ -84,6 +87,7 @@ function Register() {
                     type="password" required
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                     placeholder="Mot de passe (6+ caractères)"
+                    value={formData.password}
                     onChange={e => setFormData({...formData, password: e.target.value})}
                 />
             </div>

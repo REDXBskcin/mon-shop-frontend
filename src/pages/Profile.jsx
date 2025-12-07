@@ -12,32 +12,45 @@ function Profile() {
   const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/`;
 
   useEffect(() => {
-    // 1. Récupérer les commandes
-    axiosClient.get('/my-orders')
-      .then(res => setOrders(res.data))
-      .catch(err => console.error("Erreur commandes:", err));
+    const fetchData = async () => {
+      try {
+        // 1. Récupérer les commandes
+        const ordersRes = await axiosClient.get('/my-orders');
+        setOrders(ordersRes.data);
+      } catch (err) {
+        console.error("Erreur commandes:", err);
+        // Optionnel: afficher un message d'erreur
+      }
       
-    // 2. Récupérer les infos de l'utilisateur connecté (pour pré-remplir le formulaire)
-    axiosClient.get('/user')
-      .then(({ data }) => {
-        // On met à jour le state, mais on garde le password vide par sécurité
-        setUser({ ...data, password: '' });
-      })
-      .catch(err => console.error("Erreur user:", err));
+      // 2. Récupérer les infos de l'utilisateur connecté depuis le token
+      // On récupère les infos depuis localStorage car l'API n'a pas d'endpoint /user
+      const token = localStorage.getItem('token');
+      if (token) {
+        // On peut décoder le token JWT pour obtenir les infos, ou utiliser les données stockées
+        // Pour simplifier, on utilise les données du localStorage si disponibles
+        const storedName = localStorage.getItem('userName');
+        const storedEmail = localStorage.getItem('userEmail');
+        if (storedName || storedEmail) {
+          setUser({ name: storedName || '', email: storedEmail || '', password: '', role: localStorage.getItem('role') || '' });
+        }
+      }
+    };
+    
+    fetchData();
   }, []);
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    // Mise à jour du profil via l'API
-    axiosClient.put('/profile', user)
-      .then(res => {
-        alert("Profil mis à jour avec succès !");
-        setUser({...user, password: ''}); // Reset du champ mot de passe après sauvegarde
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Erreur lors de la mise à jour.");
-      });
+    try {
+      // Mise à jour du profil via l'API
+      await axiosClient.put('/profile', user);
+      alert("Profil mis à jour avec succès !");
+      setUser({...user, password: ''}); // Reset du champ mot de passe après sauvegarde
+    } catch (err) {
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "Erreur lors de la mise à jour.";
+      alert(errorMessage);
+    }
   };
 
   // Calculs statistiques
@@ -56,10 +69,10 @@ function Profile() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-12">
       
       {/* EN-TÊTE PROFIL */}
-      <div className="flex items-center gap-6 mb-10 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6 sm:mb-10 bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-gray-100">
         <img 
             src={`https://ui-avatars.com/api/?name=${user.name || 'User'}&background=6366f1&color=fff&size=128`} 
             alt="Avatar" 
@@ -72,18 +85,18 @@ function Profile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
         
         {/* SIDEBAR NAVIGATION */}
-        <div className="lg:col-span-1 space-y-2">
-            <button onClick={() => setActiveTab('dashboard')} className={`w-full text-left px-6 py-4 rounded-xl font-medium transition flex items-center gap-3 ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                <span>📊</span> Vue d'ensemble
+        <div className="lg:col-span-1 space-y-2 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-2 lg:gap-0">
+            <button onClick={() => setActiveTab('dashboard')} className={`whitespace-nowrap text-left px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium transition flex items-center gap-2 sm:gap-3 ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                <span>📊</span> <span className="hidden sm:inline">Vue d'ensemble</span><span className="sm:hidden">Vue</span>
             </button>
-            <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-6 py-4 rounded-xl font-medium transition flex items-center gap-3 ${activeTab === 'orders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                <span>📦</span> Mes Commandes
+            <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap text-left px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium transition flex items-center gap-2 sm:gap-3 ${activeTab === 'orders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                <span>📦</span> <span className="hidden sm:inline">Mes Commandes</span><span className="sm:hidden">Commandes</span>
             </button>
-            <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-6 py-4 rounded-xl font-medium transition flex items-center gap-3 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                <span>⚙️</span> Paramètres
+            <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap text-left px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium transition flex items-center gap-2 sm:gap-3 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                <span>⚙️</span> <span className="hidden sm:inline">Paramètres</span><span className="sm:hidden">Réglages</span>
             </button>
         </div>
 
@@ -144,7 +157,13 @@ function Profile() {
                                                 <div key={idx} className="flex items-center gap-4">
                                                     <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border border-gray-200">
                                                         {item.image_path ? (
-                                                            <img src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} className="w-full h-full object-contain" alt={item.name} />
+                                                            <img 
+                                                              src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} 
+                                                              className="w-full h-full object-contain" 
+                                                              alt={item.name}
+                                                              loading="lazy"
+                                                              decoding="async"
+                                                            />
                                                         ) : (
                                                             <span className="text-xs text-gray-400">img</span>
                                                         )}

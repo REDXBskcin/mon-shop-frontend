@@ -52,14 +52,14 @@ function Login() {
       {/* --- FOND ANIMÉ --- */}
       <div className="absolute inset-0 z-0">
         <motion.div 
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], x: [0, 100, 0] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[120px]"
+            animate={{ scale: [1, 1.15, 1], rotate: [0, 45, 0], x: [0, 50, 0] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-indigo-600/20 rounded-full blur-[100px] sm:blur-[120px] will-change-transform"
         />
         <motion.div 
-            animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0], y: [0, -100, 0] }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]"
+            animate={{ scale: [1, 1.2, 1], rotate: [0, -45, 0], y: [0, -50, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-purple-600/15 rounded-full blur-[80px] sm:blur-[100px] will-change-transform"
         />
       </div>
 
