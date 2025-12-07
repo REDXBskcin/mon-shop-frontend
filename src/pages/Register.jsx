@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -14,7 +13,7 @@ function Register() {
     setError(null);
     setIsLoading(true);
 
-    axios.post('http://127.0.0.1:8000/api/register', formData)
+    aaxiosClient.post('/signup', payload)
       .then(res => {
         alert("Compte créé !");
         navigate('/login');

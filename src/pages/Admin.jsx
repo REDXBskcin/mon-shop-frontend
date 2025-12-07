@@ -38,7 +38,7 @@ function Admin() {
   const [userForm, setUserForm] = useState({ name: '', email: '', role: 'user', password: '' });
 
   const navigate = useNavigate();
-  const storageUrl = "http://127.0.0.1:8000/storage/";
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
   // Vérification de l'accès admin
   useEffect(() => {

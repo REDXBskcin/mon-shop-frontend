@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import { CartContext } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import axiosClient from '../axios-client';
 
 function Home() {
   const [products, setProducts] = useState([]);
@@ -9,11 +9,11 @@ function Home() {
   const { addToCart } = useContext(CartContext);
   const [showToast, setShowToast] = useState(false);
 
-  const storageUrl = "http://127.0.0.1:8000/storage/";
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
   useEffect(() => {
     setTimeout(() => {
-        axios.get('http://127.0.0.1:8000/api/products')
+        axiosClient.get('/products')
         .then(res => {
             setProducts(res.data);
             setLoading(false);

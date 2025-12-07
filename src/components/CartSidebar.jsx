@@ -7,7 +7,7 @@ function CartSidebar() {
   const { cart, removeFromCart, isCartOpen, setIsCartOpen } = useContext(CartContext);
   
   const total = cart.reduce((acc, item) => acc + Number(item.price), 0);
-  const storageUrl = "http://127.0.0.1:8000/storage/";
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
   return (
     <AnimatePresence>

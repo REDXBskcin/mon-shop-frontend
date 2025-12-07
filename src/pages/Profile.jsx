@@ -1,36 +1,43 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
+import axiosClient from "../axios-client.js";
 
 function Profile() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  // On initialise l'utilisateur
   const [user, setUser] = useState({ name: '', email: '', password: '', role: '' });
   const [orders, setOrders] = useState([]);
   
-  const token = localStorage.getItem('token');
-  const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
-  const storageUrl = "http://127.0.0.1:8000/storage/";
+  // URL dynamique pour les images (Vercel ou Local)
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/`;
 
   useEffect(() => {
-    // Récupérer les commandes
-    axios.get('http://127.0.0.1:8000/api/my-orders', axiosConfig)
+    // 1. Récupérer les commandes
+    axiosClient.get('/my-orders')
       .then(res => setOrders(res.data))
-      .catch(err => console.error(err));
+      .catch(err => console.error("Erreur commandes:", err));
       
-    // Simuler récupération infos user (normalement via endpoint /me)
-    const storedRole = localStorage.getItem('role');
-    // Ici on utilise les infos qu'on a déjà ou on pourrait faire un appel API
-    // Pour l'exemple, on laisse les champs vides à remplir par l'user pour modif
+    // 2. Récupérer les infos de l'utilisateur connecté (pour pré-remplir le formulaire)
+    axiosClient.get('/user')
+      .then(({ data }) => {
+        // On met à jour le state, mais on garde le password vide par sécurité
+        setUser({ ...data, password: '' });
+      })
+      .catch(err => console.error("Erreur user:", err));
   }, []);
 
   const handleUpdate = (e) => {
     e.preventDefault();
-    axios.put('http://127.0.0.1:8000/api/profile', user, axiosConfig)
+    // Mise à jour du profil via l'API
+    axiosClient.put('/profile', user)
       .then(res => {
         alert("Profil mis à jour avec succès !");
-        setUser({...user, password: ''}); // Reset mdp
+        setUser({...user, password: ''}); // Reset du champ mot de passe après sauvegarde
       })
-      .catch(err => alert("Erreur lors de la mise à jour."));
+      .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la mise à jour.");
+      });
   };
 
   // Calculs statistiques
@@ -40,6 +47,8 @@ function Profile() {
   // Helper pour parser le contenu de la commande (JSON string -> Array)
   const getOrderItems = (jsonContent) => {
     try {
+        // Si c'est déjà un objet/array (parfois axios le parse tout seul), on le retourne direct
+        if (typeof jsonContent === 'object') return jsonContent;
         return JSON.parse(jsonContent);
     } catch (e) {
         return [];
@@ -135,7 +144,7 @@ function Profile() {
                                                 <div key={idx} className="flex items-center gap-4">
                                                     <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border border-gray-200">
                                                         {item.image_path ? (
-                                                            <img src={storageUrl + item.image_path} className="w-full h-full object-contain" />
+                                                            <img src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} className="w-full h-full object-contain" alt={item.name} />
                                                         ) : (
                                                             <span className="text-xs text-gray-400">img</span>
                                                         )}
@@ -168,20 +177,21 @@ function Profile() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
                             <input type="text" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
                                 placeholder="Votre nom"
-                                value={user.name} onChange={e => setUser({...user, name: e.target.value})}
+                                value={user.name || ''} onChange={e => setUser({...user, name: e.target.value})}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <input type="email" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
                                 placeholder="Votre email"
-                                value={user.email} onChange={e => setUser({...user, email: e.target.value})}
+                                value={user.email || ''} onChange={e => setUser({...user, email: e.target.value})}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
                             <input type="password" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
                                 placeholder="Laisser vide si inchangé"
+                                value={user.password || ''}
                                 onChange={e => setUser({...user, password: e.target.value})}
                             />
                         </div>
