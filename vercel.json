@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "installCommand": "npm ci --legacy-peer-deps || npm install",
   "framework": "vite",
   "rewrites": [
     {
@@ -20,5 +20,8 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "NPM_CONFIG_AUDIT_LEVEL": "moderate"
+  }
 }
