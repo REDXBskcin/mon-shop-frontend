@@ -14,27 +14,32 @@ function Login() {
     setError(null);
     setIsLoading(true);
     
-    // --- CORRECTION ICI : on remplace 'payload' par 'creds' ---
     axiosClient.post('/login', creds)
       .then(res => {
+        // Stockage du token
+        localStorage.setItem('ACCESS_TOKEN', res.data.token);
+        // Stockage du token "token" aussi au cas où tu utilises les deux noms
         localStorage.setItem('token', res.data.token);
         
-        // Gestion du rôle (Admin ou User)
         let roleRecu = res.data.role;
+        // Gestion robuste du rôle
         if (!roleRecu && res.data.user && res.data.user.role) roleRecu = res.data.user.role;
         localStorage.setItem('role', roleRecu || 'user');
         
-        // Redirection
-        if (roleRecu === 'admin') navigate('/admin');
-        else navigate('/');
+        // --- NAVIGATION SANS RELOAD ---
+        if (roleRecu === 'admin') {
+            navigate('/admin/products'); // J'ai mis '/admin/products' car souvent '/admin' seul est vide
+        } else {
+            navigate('/');
+        }
         
-        window.location.reload();
+        // ❌ SUPPRIME CETTE LIGNE : window.location.reload();
       })
       .catch(err => {
         setIsLoading(false);
-        // Gestion plus précise de l'erreur si possible
+        console.error(err);
         if (err.response && err.response.status === 422) {
-            setError("Email ou mot de passe incorrect.");
+            setError("Identifiants incorrects.");
         } else {
             setError("Une erreur est survenue.");
         }
@@ -44,7 +49,7 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden font-sans text-white">
       
-      {/* --- FOND ANIMÉ (Background) --- */}
+      {/* --- FOND ANIMÉ --- */}
       <div className="absolute inset-0 z-0">
         <motion.div 
             animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], x: [0, 100, 0] }}
@@ -58,7 +63,7 @@ function Login() {
         />
       </div>
 
-      {/* --- CARTE DE CONNEXION (Glassmorphism) --- */}
+      {/* --- CARTE DE CONNEXION --- */}
       <motion.div 
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -91,7 +96,6 @@ function Login() {
                         value={creds.email}
                         onChange={(e) => setCreds({...creds, email: e.target.value})}
                     />
-                    <svg className="w-5 h-5 text-gray-500 absolute left-3 top-3.5 transition group-focus-within:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
                 </div>
             </div>
 
@@ -105,7 +109,6 @@ function Login() {
                         value={creds.password}
                         onChange={(e) => setCreds({...creds, password: e.target.value})}
                     />
-                    <svg className="w-5 h-5 text-gray-500 absolute left-3 top-3.5 transition group-focus-within:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 </div>
             </div>
 
