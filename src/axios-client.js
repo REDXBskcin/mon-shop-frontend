@@ -1,30 +1,20 @@
-// Configuration centralisée d'Axios pour communiquer avec l'API Laravel
-// Ce fichier permet de :
-// 1. Définir l'URL de base de l'API une seule fois
-// 2. Ajouter automatiquement le token d'authentification à chaque requête
-// 3. Gérer les erreurs de manière centralisée
-
 import axios from 'axios';
-
-// URL de base de l'API Laravel (à modifier selon ton environnement)
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-
-// On crée une instance d'axios avec la configuration de base
 const axiosClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 });
 
-// Intercepteur de requête : ajoute automatiquement le token si l'utilisateur est connecté
+// Intercepteur de requête : ajoute le token
 axiosClient.interceptors.request.use(
   (config) => {
-    // On récupère le token depuis le localStorage
-    const token = localStorage.getItem('token');
+    // Vérifie bien si tu as appelé ta clé 'token' ou 'ACCESS_TOKEN' dans ton Login.jsx
+    // Par sécurité, je mets 'ACCESS_TOKEN' car c'est le standard qu'on utilise souvent,
+    // mais si tu as utilisé 'token' partout, remets 'token'.
+    const token = localStorage.getItem('ACCESS_TOKEN') || localStorage.getItem('token');
     
-    // Si un token existe, on l'ajoute dans les headers
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,25 +26,25 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Intercepteur de réponse : gère les erreurs communes (401, 403, etc.)
+// Intercepteur de réponse : gère les erreurs
 axiosClient.interceptors.response.use(
   (response) => {
-    // Si tout va bien, on retourne la réponse
     return response;
   },
   (error) => {
-    // Si on reçoit une erreur 401 (non autorisé), l'utilisateur n'est plus connecté
-    if (error.response?.status === 401) {
-      // On supprime le token et on redirige vers la page de connexion
+    const { response } = error;
+    
+    // Si erreur 401 (Non autorisé/Token expiré)
+    if (response && response.status === 401) {
+      localStorage.removeItem('ACCESS_TOKEN');
       localStorage.removeItem('token');
       localStorage.removeItem('role');
+      // Redirection vers le login
       window.location.href = '/login';
     }
     
-    // On retourne l'erreur pour que le composant puisse la gérer
     return Promise.reject(error);
   }
 );
 
 export default axiosClient;
-
