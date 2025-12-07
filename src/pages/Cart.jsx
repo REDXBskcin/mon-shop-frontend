@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { CartContext } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function Cart() {
   const { cart } = useContext(CartContext);
@@ -44,23 +45,53 @@ function Cart() {
           
           {/* COLONNE GAUCHE : LISTE DES ARTICLES */}
           <div className="lg:col-span-2 space-y-4">
-            {cart.map((item, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-4 flex-1">
-                  {/* Carré de couleur pour simuler une image */}
-                  <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0">
-                    {item.name.charAt(0)}
+            <AnimatePresence mode="popLayout">
+              {cart.map((item, index) => (
+                <motion.div 
+                  key={`${item.id}-${index}`}
+                  layout
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ 
+                    opacity: 0, 
+                    x: -100, 
+                    scale: 0.8,
+                    transition: { duration: 0.3 }
+                  }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 25,
+                    layout: { duration: 0.3 }
+                  }}
+                  className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Carré de couleur pour simuler une image */}
+                    <motion.div 
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                      className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0"
+                    >
+                      {item.name.charAt(0)}
+                    </motion.div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
+                      <p className="text-sm text-gray-500">Ref: {item.id}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
-                    <p className="text-sm text-gray-500">Ref: {item.id}</p>
-                  </div>
-                </div>
-                <div className="font-bold text-indigo-600 text-lg sm:text-xl">
-                  {item.price} €
-                </div>
-              </div>
-            ))}
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring" }}
+                    className="font-bold text-indigo-600 text-lg sm:text-xl"
+                  >
+                    {item.price} €
+                  </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
           {/* COLONNE DROITE : RÉCAPITULATIF COMMANDE */}

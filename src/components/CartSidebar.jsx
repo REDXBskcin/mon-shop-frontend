@@ -44,36 +44,64 @@ function CartSidebar() {
                   <button onClick={() => setIsCartOpen(false)} className="text-indigo-600 font-bold hover:underline">Continuer mes achats</button>
                 </div>
               ) : (
-                cart.map((item, index) => (
-                  <motion.div layout key={index} initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} className="flex gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                    {/* IMAGE MINIATURE */}
-                    <div className="h-20 w-20 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
-                      {item.image_path ? (
-                          <img 
-                            src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} 
-                            alt={item.name} 
-                            className="w-full h-full object-contain p-2" 
-                            loading="lazy"
-                            decoding="async"
-                          />
-                      ) : (
-                          <span className="text-2xl opacity-20">📦</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex-grow flex flex-col justify-center">
-                      <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{item.name}</h3>
-                      <p className="text-indigo-600 font-bold mt-1">{item.price} €</p>
-                    </div>
-
-                    <button 
-                      onClick={() => removeFromCart(index)}
-                      className="text-gray-400 hover:text-red-500 self-center p-2"
+                <AnimatePresence mode="popLayout">
+                  {cart.map((item, index) => (
+                    <motion.div 
+                      layout
+                      key={`${item.id}-${index}`}
+                      initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ 
+                        opacity: 0, 
+                        x: 100, 
+                        scale: 0.8,
+                        transition: { duration: 0.3 }
+                      }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 300, 
+                        damping: 25,
+                        layout: { duration: 0.3 }
+                      }}
+                      className="flex gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 000-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                    </button>
-                  </motion.div>
-                ))
+                      {/* IMAGE MINIATURE */}
+                      <motion.div 
+                        initial={{ scale: 0.8, rotate: -10 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                        className="h-20 w-20 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0"
+                      >
+                        {item.image_path ? (
+                            <img 
+                              src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} 
+                              alt={item.name} 
+                              className="w-full h-full object-contain p-2" 
+                              loading="lazy"
+                              decoding="async"
+                            />
+                        ) : (
+                            <span className="text-2xl opacity-20">📦</span>
+                        )}
+                      </motion.div>
+                      
+                      <div className="flex-grow flex flex-col justify-center">
+                        <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{item.name}</h3>
+                        <p className="text-indigo-600 font-bold mt-1">{item.price} €</p>
+                      </div>
+
+                      <motion.button 
+                        onClick={() => removeFromCart(index)}
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                        className="text-gray-400 hover:text-red-500 self-center p-2 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 000-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                      </motion.button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
             </div>
 

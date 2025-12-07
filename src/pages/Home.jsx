@@ -8,6 +8,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const { addToCart } = useContext(CartContext);
   const [showToast, setShowToast] = useState(false);
+  const [addingProductId, setAddingProductId] = useState(null);
 
   const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
@@ -28,6 +29,10 @@ function Home() {
   }, []);
 
   const handleAdd = (product) => {
+    // Animation du bouton
+    setAddingProductId(product.id);
+    setTimeout(() => setAddingProductId(null), 600);
+    
     addToCart(product);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -228,13 +233,50 @@ function Home() {
                                 {product.description || "Un produit de qualité supérieure."}
                             </p>
                             
-                            <button 
+                            <motion.button 
                                 onClick={() => handleAdd(product)}
-                                className="w-full py-3 rounded-xl font-bold bg-gray-900 text-white hover:bg-indigo-600 transition-all duration-300 flex items-center justify-center gap-2 group-active:scale-95 shadow-md"
+                                whileTap={{ scale: 0.95 }}
+                                animate={addingProductId === product.id ? {
+                                  scale: [1, 1.1, 1],
+                                  backgroundColor: ["#111827", "#4f46e5", "#111827"]
+                                } : {}}
+                                transition={{ duration: 0.4 }}
+                                className="w-full py-3 rounded-xl font-bold bg-gray-900 text-white hover:bg-indigo-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-md relative overflow-hidden"
                             >
-                                <span>Ajouter</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                            </button>
+                                {addingProductId === product.id && (
+                                  <motion.div
+                                    initial={{ scale: 0, rotate: 0 }}
+                                    animate={{ scale: [0, 1.5, 0], rotate: 360 }}
+                                    transition={{ duration: 0.6 }}
+                                    className="absolute inset-0 bg-green-500 rounded-xl"
+                                  />
+                                )}
+                                <motion.span
+                                  animate={addingProductId === product.id ? { 
+                                    scale: [1, 1.2, 1],
+                                    color: addingProductId === product.id ? "#fff" : "inherit"
+                                  } : {}}
+                                  className="relative z-10 flex items-center gap-2"
+                                >
+                                  {addingProductId === product.id ? (
+                                    <>
+                                      <motion.span
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1, rotate: [0, 360] }}
+                                        transition={{ duration: 0.4 }}
+                                      >
+                                        ✓
+                                      </motion.span>
+                                      <span>Ajouté !</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Ajouter</span>
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                    </>
+                                  )}
+                                </motion.span>
+                            </motion.button>
                         </div>
                     </motion.div>
                 ))}
