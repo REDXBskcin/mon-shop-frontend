@@ -4,6 +4,11 @@ import axios from 'axios';
 // Au lieu de l'adresse IP fixe, on utilise la variable d'environnement.
 // En local, ça lira ton fichier .env.
 // Sur Vercel, ça lira la configuration que tu as faite sur le site.
+
+const urlDebug = import.meta.env.VITE_API_BASE_URL;
+console.log('%c 🚨 MON API URL EST : ' + urlDebug, 'background: red; color: white; font-size: 20px');
+
+
 const axiosClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
   headers: {
