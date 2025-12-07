@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axiosClient from '../axios-client';
+import Toast from '../components/Toast';
 
 function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -16,8 +18,11 @@ function Register() {
 
     axiosClient.post('/register', formData)
       .then(res => {
-        alert("Compte créé !");
-        navigate('/login');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          navigate('/login');
+        }, 2000);
       })
       .catch(err => {
         setIsLoading(false);
@@ -107,6 +112,14 @@ function Register() {
             </Link>
         </p>
       </motion.div>
+
+      {/* Toast de succès */}
+      <Toast 
+        show={showToast} 
+        message="Compte créé avec succès ! 🎉" 
+        type="success"
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 }

@@ -6,6 +6,10 @@ import { Link } from 'react-router-dom';
 function CartSidebar() {
   const { cart, removeFromCart, isCartOpen, setIsCartOpen } = useContext(CartContext);
   
+  // Vérifier si l'utilisateur est connecté
+  const token = localStorage.getItem('token');
+  const isAuthenticated = !!token;
+  
   const total = cart.reduce((acc, item) => acc + Number(item.price), 0);
   const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
 
@@ -72,17 +76,17 @@ function CartSidebar() {
             </div>
 
             {cart.length > 0 && (
-              <div className="border-t p-6 bg-white z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-                <div className="flex justify-between text-xl font-bold mb-6 text-gray-900">
+              <div className="border-t p-4 sm:p-6 bg-white z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.02)] mt-auto">
+                <div className="flex justify-between text-lg sm:text-xl font-bold mb-4 text-gray-900">
                   <span>Total</span>
                   <span>{total.toFixed(2)} €</span>
                 </div>
                 <Link 
-                  to="/cart" 
+                  to={isAuthenticated ? "/cart" : "/login"}
                   onClick={() => setIsCartOpen(false)}
-                  className="block w-full bg-gray-900 text-white text-center py-4 rounded-xl font-bold hover:bg-black transition shadow-xl"
+                  className="block w-full bg-gray-900 text-white text-center py-3 sm:py-4 rounded-xl font-bold hover:bg-black transition shadow-xl"
                 >
-                  Commander
+                  {isAuthenticated ? "Commander" : "Se connecter"}
                 </Link>
               </div>
             )}

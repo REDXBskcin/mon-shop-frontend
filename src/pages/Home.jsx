@@ -30,21 +30,42 @@ function Home() {
   const handleAdd = (product) => {
     addToCart(product);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   return (
     <div className="relative bg-gray-50 min-h-screen font-sans">
       
-      {/* TOAST */}
+      {/* TOAST - Animation améliorée */}
       <AnimatePresence>
         {showToast && (
           <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 right-8 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl z-50 font-medium flex items-center gap-3 border border-gray-700 backdrop-blur-md"
+            initial={{ opacity: 0, y: 50, scale: 0.8, rotate: -5 }} 
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300, 
+              damping: 20,
+              duration: 0.4
+            }}
+            className="fixed bottom-8 right-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl z-50 font-bold flex items-center gap-3 border-2 border-green-400 backdrop-blur-md"
           >
-            <span className="bg-green-500 rounded-full h-5 w-5 flex items-center justify-center text-[10px]">✓</span> 
-            Ajouté au panier
+            <motion.span 
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+              className="bg-white text-green-600 rounded-full h-6 w-6 flex items-center justify-center text-sm font-black"
+            >
+              ✓
+            </motion.span> 
+            <motion.span
+              initial={{ x: -10, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Ajouté au panier ! 🛒
+            </motion.span>
           </motion.div>
         )}
       </AnimatePresence>

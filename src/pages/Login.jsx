@@ -2,12 +2,14 @@ import { useState } from 'react';
 import axiosClient from "../axios-client.js";
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Toast from '../components/Toast';
 
 function Login() {
   const [creds, setCreds] = useState({ email: '', password: '' });
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,14 +28,18 @@ function Login() {
         if (!roleRecu && res.data.user && res.data.user.role) roleRecu = res.data.user.role;
         localStorage.setItem('role', roleRecu || 'user');
         
-        // --- NAVIGATION SANS RELOAD ---
-        if (roleRecu === 'admin') {
-            navigate('/admin/products'); // J'ai mis '/admin/products' car souvent '/admin' seul est vide
-        } else {
-            navigate('/');
-        }
+        // Afficher le toast de succès
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
         
-        // ❌ SUPPRIME CETTE LIGNE : window.location.reload();
+        // --- NAVIGATION SANS RELOAD ---
+        setTimeout(() => {
+          if (roleRecu === 'admin') {
+            navigate('/admin'); // Redirection directe vers le dashboard admin
+          } else {
+            navigate('/');
+          }
+        }, 1000);
       })
       .catch(err => {
         setIsLoading(false);
@@ -127,6 +133,14 @@ function Login() {
             </Link>
         </p>
       </motion.div>
+
+      {/* Toast de succès */}
+      <Toast 
+        show={showToast} 
+        message="Connexion réussie ! 🎉" 
+        type="success"
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 }

@@ -6,12 +6,20 @@ function Cart() {
   const { cart } = useContext(CartContext);
   const navigate = useNavigate();
 
+  // Vérifier si l'utilisateur est connecté
+  const token = localStorage.getItem('token');
+  const isAuthenticated = !!token;
+
   // Calcul du total
   const total = cart.reduce((acc, item) => acc + Number(item.price || 0), 0);
 
-  // Redirection vers la page de paiement
+  // Redirection vers la page de paiement ou connexion
   const handleCheckout = () => {
-    navigate('/checkout');
+    if (isAuthenticated) {
+      navigate('/checkout');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
@@ -78,7 +86,11 @@ function Cart() {
                 onClick={handleCheckout}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-300 transform hover:scale-105 active:scale-95"
               >
-                Procéder au paiement 💳
+                {isAuthenticated ? (
+                  <>Procéder au paiement 💳</>
+                ) : (
+                  <>Se connecter 🔐</>
+                )}
               </button>
               
               <p className="text-xs text-center text-gray-400 mt-4">
