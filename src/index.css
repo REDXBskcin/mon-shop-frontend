@@ -2,35 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optimisations de performance */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-img {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-}
-
-/* Réduction des animations pour les utilisateurs qui préfèrent */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply text-gray-900 bg-white; /* Fond blanc, texte sombre */
+    overflow-x: hidden;
   }
 }
 
-/* Optimisation du scroll */
-html {
-  scroll-behavior: smooth;
+/* Scrollbar fine comme sur les sites modernes */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
-/* Amélioration de la performance du rendu */
-body {
-  will-change: auto;
-  transform: translateZ(0);
+/* Utilitaires images */
+img {
+  image-rendering: -webkit-optimize-contrast;
 }
