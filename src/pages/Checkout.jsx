@@ -1,326 +1,325 @@
 import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axiosClient from '../axios-client.js';
 import { CartContext } from '../context/CartContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
-function Checkout() {
+// Options de livraison
+const SHIPPING_METHODS = [
+  { id: 'standard', name: 'Livraison Standard', price: 4.99, delay: '3-5 jours', icon: '🚚' },
+  { id: 'express', name: 'Chronopost Express', price: 12.99, delay: '24h', icon: '🚀' },
+  { id: 'shop', name: 'Retrait en Magasin', price: 0, delay: 'Immédiat', icon: '🏪' }
+];
+
+export default function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
+  const { user } = useAuth();
   const navigate = useNavigate();
   
-  // États pour le formulaire de paiement
-  const [paymentData, setPaymentData] = useState({
-    cardNumber: '',
-    cardName: '',
-    expiryDate: '',
-    cvv: '',
-    address: '',
-    city: '',
-    zipCode: ''
-  });
-  
+  // États du tunnel
+  const [step, setStep] = useState(1); // 1: Adresse, 2: Livraison, 3: Paiement
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState({});
+  
+  // Données du formulaire
+  const [address, setAddress] = useState({ street: '', city: '', zip: '', country: 'France' });
+  const [shippingMethod, setShippingMethod] = useState(SHIPPING_METHODS[0]);
+  const [paymentData, setPaymentData] = useState({ card: '', date: '', cvv: '', name: '' });
 
-  // Calcul du total
-  const total = cart.reduce((acc, item) => acc + Number(item.price || 0), 0);
+  // Calculs financiers
+  const subtotal = cart.reduce((acc, item) => acc + Number(item.price || 0), 0);
+  const total = subtotal + shippingMethod.price;
 
-  // Validation du formulaire
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Validation numéro de carte (16 chiffres)
-    if (!paymentData.cardNumber || paymentData.cardNumber.replace(/\s/g, '').length !== 16) {
-      newErrors.cardNumber = 'Le numéro de carte doit contenir 16 chiffres';
-    }
-    
-    // Validation nom sur la carte
-    if (!paymentData.cardName || paymentData.cardName.length < 3) {
-      newErrors.cardName = 'Le nom sur la carte est requis';
-    }
-    
-    // Validation date d'expiration (MM/YY)
-    if (!paymentData.expiryDate || !/^\d{2}\/\d{2}$/.test(paymentData.expiryDate)) {
-      newErrors.expiryDate = 'Format requis : MM/AA';
-    }
-    
-    // Validation CVV (3 chiffres)
-    if (!paymentData.cvv || paymentData.cvv.length !== 3) {
-      newErrors.cvv = 'Le CVV doit contenir 3 chiffres';
-    }
-    
-    // Validation adresse
-    if (!paymentData.address || paymentData.address.length < 5) {
-      newErrors.address = 'L\'adresse est requise';
-    }
-    
-    // Validation ville
-    if (!paymentData.city || paymentData.city.length < 2) {
-      newErrors.city = 'La ville est requise';
-    }
-    
-    // Validation code postal
-    if (!paymentData.zipCode || paymentData.zipCode.length < 5) {
-      newErrors.zipCode = 'Le code postal est requis';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  // --- ACTIONS ---
+
+  const handleAddressSubmit = (e) => {
+    e.preventDefault();
+    if(address.street && address.city && address.zip) setStep(2);
+    else alert("Veuillez remplir tous les champs d'adresse.");
   };
 
-  // Formatage automatique du numéro de carte
-  const formatCardNumber = (value) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return v;
-    }
+  const handleShippingSubmit = () => {
+    setStep(3);
   };
 
-  // Formatage automatique de la date d'expiration
-  const formatExpiryDate = (value) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4);
-    }
-    return v;
-  };
-
-  // Traitement du paiement
   const handlePayment = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    if(paymentData.card.length < 16) return alert("Numéro de carte invalide");
 
     setIsProcessing(true);
 
     try {
-      // Simulation d'un délai de traitement (pour un vrai projet, on appellerait une API de paiement)
+      // Simulation API (2 secondes)
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Création de la commande
       const orderData = {
         cart: cart,
         total: total,
-        payment_method: 'card', // Méthode de paiement
-        payment_status: 'paid' // Statut du paiement
+        address: address,
+        shipping: shippingMethod,
+        payment_method: 'credit_card'
       };
 
+      // Envoi au backend
       const response = await axiosClient.post('/orders', orderData);
       
-      // Succès !
-      alert(`✅ Paiement réussi ! Votre commande n°${response.data.id} est validée.`);
+      alert(`✅ Commande #${response.data.id || Math.floor(Math.random()*10000)} validée ! Merci de votre achat.`);
       clearCart();
-      navigate('/');
+      navigate('/'); // Retour accueil (ou vers une page "Success" dédiée)
     } catch (error) {
-      console.error('Erreur lors du paiement', error);
-      alert('❌ Une erreur est survenue lors du paiement. Veuillez réessayer.');
+      console.error(error);
+      alert('❌ Erreur lors du paiement. Veuillez contacter votre banque.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // --- RENDU SI PANIER VIDE ---
   if (cart.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-10 text-center">
-          <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Votre panier est vide</h2>
-          <p className="text-gray-500 mb-6">Ajoutez des produits avant de procéder au paiement.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition"
-          >
-            Retourner à la boutique
-          </button>
-        </div>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white">
+        <div className="text-6xl mb-4">🛒</div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Votre panier est vide</h2>
+        <Link to="/" className="text-[#1D428A] font-bold hover:underline">Continuer mes achats</Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 flex items-center gap-2">
-        <span>💳</span> Paiement
-      </h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        
-        {/* FORMULAIRE DE PAIEMENT */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Informations de paiement</h2>
+    <div className="max-w-[1200px] mx-auto px-4 py-8">
+      
+      {/* HEADER TUNNEL */}
+      <div className="flex items-center justify-center mb-12">
+        <div className="flex items-center w-full max-w-2xl">
+            {/* Étape 1 */}
+            <div className={`flex flex-col items-center relative z-10 ${step >= 1 ? 'text-[#1D428A]' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors ${step >= 1 ? 'bg-[#1D428A] text-white border-[#1D428A]' : 'bg-white border-gray-300'}`}>1</div>
+                <span className="text-xs font-bold mt-2 uppercase">Adresse</span>
+            </div>
+            <div className={`flex-1 h-1 mx-2 transition-colors ${step >= 2 ? 'bg-[#1D428A]' : 'bg-gray-200'}`}></div>
             
-            <form onSubmit={handlePayment} className="space-y-6">
-              
-              {/* CARTE BANCAIRE */}
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm opacity-90">Carte bancaire</span>
-                  <span className="text-2xl">💳</span>
-                </div>
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={paymentData.cardNumber}
-                    onChange={(e) => setPaymentData({...paymentData, cardNumber: formatCardNumber(e.target.value)})}
-                    maxLength="19"
-                    className="w-full bg-white/20 border border-white/30 rounded-lg px-4 py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                  {errors.cardNumber && <p className="text-red-200 text-xs mt-1">{errors.cardNumber}</p>}
-                </div>
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="NOM SUR LA CARTE"
-                    value={paymentData.cardName}
-                    onChange={(e) => setPaymentData({...paymentData, cardName: e.target.value.toUpperCase()})}
-                    className="w-full bg-white/20 border border-white/30 rounded-lg px-4 py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                  {errors.cardName && <p className="text-red-200 text-xs mt-1">{errors.cardName}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="MM/AA"
-                      value={paymentData.expiryDate}
-                      onChange={(e) => setPaymentData({...paymentData, expiryDate: formatExpiryDate(e.target.value)})}
-                      maxLength="5"
-                      className="w-full bg-white/20 border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm sm:text-base"
-                    />
-                    {errors.expiryDate && <p className="text-red-200 text-xs mt-1">{errors.expiryDate}</p>}
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      value={paymentData.cvv}
-                      onChange={(e) => setPaymentData({...paymentData, cvv: e.target.value.replace(/\D/g, '').substring(0, 3)})}
-                      maxLength="3"
-                      className="w-full bg-white/20 border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm sm:text-base"
-                    />
-                    {errors.cvv && <p className="text-red-200 text-xs mt-1">{errors.cvv}</p>}
-                  </div>
-                </div>
-              </div>
+            {/* Étape 2 */}
+            <div className={`flex flex-col items-center relative z-10 ${step >= 2 ? 'text-[#1D428A]' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors ${step >= 2 ? 'bg-[#1D428A] text-white border-[#1D428A]' : 'bg-white border-gray-300'}`}>2</div>
+                <span className="text-xs font-bold mt-2 uppercase">Livraison</span>
+            </div>
+            <div className={`flex-1 h-1 mx-2 transition-colors ${step >= 3 ? 'bg-[#1D428A]' : 'bg-gray-200'}`}></div>
 
-              {/* ADRESSE DE LIVRAISON */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Adresse de livraison</h3>
-                <div className="space-y-4">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Adresse"
-                      value={paymentData.address}
-                      onChange={(e) => setPaymentData({...paymentData, address: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Ville"
-                        value={paymentData.city}
-                        onChange={(e) => setPaymentData({...paymentData, city: e.target.value})}
-                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                      />
-                      {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Code postal"
-                        value={paymentData.zipCode}
-                        onChange={(e) => setPaymentData({...paymentData, zipCode: e.target.value.replace(/\D/g, '').substring(0, 5)})}
-                        maxLength="5"
-                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-                      />
-                      {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Étape 3 */}
+            <div className={`flex flex-col items-center relative z-10 ${step >= 3 ? 'text-[#1D428A]' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors ${step >= 3 ? 'bg-[#1D428A] text-white border-[#1D428A]' : 'bg-white border-gray-300'}`}>3</div>
+                <span className="text-xs font-bold mt-2 uppercase">Paiement</span>
+            </div>
+        </div>
+      </div>
 
-              {/* BOUTON DE PAIEMENT */}
-              <button
-                type="submit"
-                disabled={isProcessing}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    />
-                    Traitement en cours...
-                  </>
-                ) : (
-                  <>
-                    <span>💳</span> Payer {total.toFixed(2)} €
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* --- COLONNE GAUCHE : FORMULAIRES --- */}
+        <div className="lg:col-span-2 space-y-6">
+            
+            {/* ETAPE 1 : ADRESSE */}
+            {step === 1 && (
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white p-6 rounded shadow-sm border border-gray-200">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <span>📍</span> Adresse de livraison
+                    </h2>
+                    <form onSubmit={handleAddressSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Prénom</label>
+                                <input type="text" defaultValue={user.name?.split(' ')[0]} className="w-full border p-2 rounded bg-gray-50" readOnly />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Nom</label>
+                                <input type="text" defaultValue={user.name?.split(' ')[1]} className="w-full border p-2 rounded bg-gray-50" readOnly />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Adresse</label>
+                            <input 
+                                type="text" required placeholder="123 Rue de la Tech" 
+                                className="w-full border border-gray-300 p-2 rounded focus:border-[#1D428A] outline-none"
+                                value={address.street} onChange={e => setAddress({...address, street: e.target.value})}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Code Postal</label>
+                                <input 
+                                    type="text" required placeholder="75000" 
+                                    className="w-full border border-gray-300 p-2 rounded focus:border-[#1D428A] outline-none"
+                                    value={address.zip} onChange={e => setAddress({...address, zip: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Ville</label>
+                                <input 
+                                    type="text" required placeholder="Paris" 
+                                    className="w-full border border-gray-300 p-2 rounded focus:border-[#1D428A] outline-none"
+                                    value={address.city} onChange={e => setAddress({...address, city: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        <div className="pt-4 flex justify-end">
+                            <button className="bg-[#1D428A] text-white px-6 py-3 rounded font-bold hover:bg-[#15326d] transition shadow-lg">
+                                Valider et continuer ▸
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            )}
+
+            {/* ETAPE 2 : LIVRAISON */}
+            {step === 2 && (
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white p-6 rounded shadow-sm border border-gray-200">
+                    <button onClick={() => setStep(1)} className="text-sm text-gray-500 hover:underline mb-4">← Revenir à l'adresse</button>
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <span>🚚</span> Mode de livraison
+                    </h2>
+                    <div className="space-y-3">
+                        {SHIPPING_METHODS.map((method) => (
+                            <label key={method.id} className={`flex items-center justify-between p-4 border rounded cursor-pointer transition ${shippingMethod.id === method.id ? 'border-[#1D428A] bg-blue-50 ring-1 ring-[#1D428A]' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                <div className="flex items-center gap-4">
+                                    <input 
+                                        type="radio" name="shipping" 
+                                        checked={shippingMethod.id === method.id}
+                                        onChange={() => setShippingMethod(method)}
+                                        className="w-5 h-5 text-[#1D428A]"
+                                    />
+                                    <div>
+                                        <div className="font-bold text-gray-800 flex items-center gap-2">
+                                            <span className="text-xl">{method.icon}</span> {method.name}
+                                        </div>
+                                        <div className="text-sm text-gray-500">Délai estimé : {method.delay}</div>
+                                    </div>
+                                </div>
+                                <div className="font-bold text-[#1D428A]">
+                                    {method.price === 0 ? 'GRATUIT' : `${method.price} €`}
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                    <div className="pt-6 flex justify-end">
+                        <button onClick={handleShippingSubmit} className="bg-[#1D428A] text-white px-6 py-3 rounded font-bold hover:bg-[#15326d] transition shadow-lg">
+                            Passer au paiement ▸
+                        </button>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* ETAPE 3 : PAIEMENT */}
+            {step === 3 && (
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white p-6 rounded shadow-sm border border-gray-200">
+                    <button onClick={() => setStep(2)} className="text-sm text-gray-500 hover:underline mb-4">← Revenir à la livraison</button>
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <span>💳</span> Paiement sécurisé
+                    </h2>
+                    
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-sm text-yellow-800 mb-6 flex items-center gap-2">
+                        <span>🔒</span> Vous allez payer <strong>{total.toFixed(2)} €</strong> par Carte Bancaire.
+                    </div>
+
+                    <form onSubmit={handlePayment} className="space-y-4 max-w-md mx-auto">
+                        <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-xl text-white shadow-xl">
+                            <div className="mb-4">
+                                <label className="block text-xs uppercase opacity-70 mb-1">Numéro de carte</label>
+                                <input 
+                                    type="text" placeholder="0000 0000 0000 0000" maxLength="19" required
+                                    className="w-full bg-transparent border-b border-white/30 text-xl tracking-widest placeholder-white/20 focus:outline-none focus:border-white py-1"
+                                    value={paymentData.card}
+                                    onChange={e => setPaymentData({...paymentData, card: e.target.value.replace(/\D/g,'')})}
+                                />
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-xs uppercase opacity-70 mb-1">Expire fin</label>
+                                    <input 
+                                        type="text" placeholder="MM/AA" maxLength="5" required
+                                        className="w-full bg-transparent border-b border-white/30 text-lg placeholder-white/20 focus:outline-none focus:border-white py-1"
+                                        value={paymentData.date}
+                                        onChange={e => setPaymentData({...paymentData, date: e.target.value})}
+                                    />
+                                </div>
+                                <div className="w-20">
+                                    <label className="block text-xs uppercase opacity-70 mb-1">CVV</label>
+                                    <input 
+                                        type="text" placeholder="123" maxLength="3" required
+                                        className="w-full bg-transparent border-b border-white/30 text-lg placeholder-white/20 focus:outline-none focus:border-white py-1"
+                                        value={paymentData.cvv}
+                                        onChange={e => setPaymentData({...paymentData, cvv: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                            <div className="mt-6">
+                                <label className="block text-xs uppercase opacity-70 mb-1">Titulaire</label>
+                                <input 
+                                    type="text" placeholder="NOM PRENOM" required
+                                    className="w-full bg-transparent border-b border-white/30 text-lg placeholder-white/20 focus:outline-none focus:border-white py-1 uppercase"
+                                    value={paymentData.name}
+                                    onChange={e => setPaymentData({...paymentData, name: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        <button 
+                            disabled={isProcessing}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-lg transition transform hover:scale-[1.02] flex justify-center items-center gap-2 mt-6"
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Traitement...
+                                </>
+                            ) : (
+                                <>Payer {total.toFixed(2)} €</>
+                            )}
+                        </button>
+                    </form>
+                </motion.div>
+            )}
+
         </div>
 
-        {/* RÉCAPITULATIF */}
+        {/* --- COLONNE DROITE : RÉCAPITULATIF (Sticky) --- */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 sticky top-24">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Récapitulatif</h2>
-            
-            <div className="space-y-3 mb-4">
-              {cart.map((item, index) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{item.name}</span>
-                  <span className="font-medium">{item.price} €</span>
+            <div className="bg-white border border-gray-200 rounded shadow-sm p-6 sticky top-32">
+                <h3 className="font-bold text-gray-800 text-lg border-b pb-2 mb-4">Récapitulatif</h3>
+                
+                <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                    {cart.map((item, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                            <span className="text-gray-600 truncate w-2/3" title={item.name}>{item.name}</span>
+                            <span className="font-bold">{item.price} €</span>
+                        </div>
+                    ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between text-gray-600">
-                <span>Sous-total</span>
-                <span>{total.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Livraison</span>
-                <span className="text-green-600 font-medium">Gratuite</span>
-              </div>
-              <div className="flex justify-between text-2xl font-bold text-gray-900 border-t pt-2 mt-2">
-                <span>Total</span>
-                <span>{total.toFixed(2)} €</span>
-              </div>
-            </div>
+                <div className="border-t pt-4 space-y-2 text-sm text-gray-600">
+                    <div className="flex justify-between">
+                        <span>Sous-total</span>
+                        <span>{subtotal.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Livraison</span>
+                        <span>{shippingMethod.price === 0 ? 'Gratuite' : `${shippingMethod.price} €`}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 italic text-right">{shippingMethod.name}</div>
+                </div>
 
-            <div className="mt-6 p-4 bg-indigo-50 rounded-lg">
-              <p className="text-xs text-gray-600 text-center">
-                🔒 Paiement sécurisé - Ceci est une simulation pour le projet BTS SIO
-              </p>
+                <div className="border-t mt-4 pt-4 flex justify-between items-center">
+                    <span className="font-bold text-lg text-gray-800">Total TTC</span>
+                    <span className="font-black text-2xl text-[#1D428A]">{total.toFixed(2)} €</span>
+                </div>
+
+                <div className="mt-6 bg-blue-50 p-3 rounded text-xs text-blue-800 flex items-start gap-2">
+                    <span className="text-xl">🛡️</span>
+                    <p>Paiement 100% sécurisé via protocole SSL. Vos données bancaires sont cryptées.</p>
+                </div>
             </div>
-          </div>
         </div>
 
       </div>
     </div>
   );
 }
-
-export default Checkout;
-

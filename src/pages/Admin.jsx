@@ -3,887 +3,421 @@ import axiosClient from '../axios-client.js';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- COMPOSANT STATS ---
-const StatCard = ({ title, value, icon, trend, color }) => (
-  <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-start justify-between hover:shadow-md transition-shadow">
+// --- COMPOSANTS UI ---
+const StatCard = ({ title, value, icon, color }) => (
+  <div className="bg-white p-6 rounded shadow-sm border border-gray-100 flex items-center justify-between">
     <div>
-      <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">{title}</p>
-      <h3 className="text-2xl font-bold text-gray-800 mt-1">{value}</h3>
-      <span className={`text-xs font-medium ${trend === 'up' ? 'text-green-600' : 'text-gray-400'} flex items-center gap-1 mt-2`}>
-        {trend === 'up' ? '↗ Hausse' : '— Stable'}
-      </span>
+      <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+      <h3 className="text-2xl font-black text-gray-800">{value}</h3>
     </div>
-    <div className={`p-3 rounded-lg ${color} text-white shadow-lg`}>{icon}</div>
+    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${color}`}>
+      {icon}
+    </div>
   </div>
 );
 
-function Admin() {
+const Badge = ({ children, color }) => (
+  <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide ${color}`}>
+    {children}
+  </span>
+);
+
+export default function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   
-  // États pour les modals
+  // Modals
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // null = création, sinon = édition
+  const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
   
-  // États pour les formulaires
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', stock: '' });
-  const [imageFile, setImageFile] = useState(null);
-  const [imageUrl, setImageUrl] = useState('');
-  const [useImageUrl, setUseImageUrl] = useState(false); // true = URL, false = fichier
-  const [orderForm, setOrderForm] = useState({ status: 'pending' });
-  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'user', password: '' });
+  // Selection
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  // Formulaires
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', stock: '', image_url: '' });
 
   const navigate = useNavigate();
-  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage`;
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/`;
 
-  // Vérification de l'accès admin
   useEffect(() => {
     const token = localStorage.getItem('token');
-    let role = localStorage.getItem('role');
-    if (role) role = role.trim();
+    const role = localStorage.getItem('role');
     if (!token || role !== 'admin') navigate('/');
-    else fetchData();
+    fetchData();
   }, []);
 
-  // Chargement des données avec gestion d'erreur
   const fetchData = async () => {
     try {
-      const [productsRes, ordersRes, usersRes] = await Promise.allSettled([
+      const [pRes, oRes, uRes] = await Promise.all([
         axiosClient.get('/products'),
         axiosClient.get('/admin/orders'),
         axiosClient.get('/users')
       ]);
-      
-      if (productsRes.status === 'fulfilled') {
-        setProducts(productsRes.value.data);
-      } else {
-        console.error('Erreur produits:', productsRes.reason);
-      }
-      
-      if (ordersRes.status === 'fulfilled') {
-        setOrders(ordersRes.value.data);
-      } else {
-        console.error('Erreur commandes:', ordersRes.reason);
-      }
-      
-      if (usersRes.status === 'fulfilled') {
-        setUsers(usersRes.value.data);
-      } else {
-        console.error('Erreur utilisateurs:', usersRes.reason);
-      }
+      setProducts(pRes.data);
+      setOrders(oRes.data);
+      setUsers(uRes.data);
     } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
+      console.error(error);
     }
   };
 
-  // ============================================
-  // GESTION DES PRODUITS
-  // ============================================
-  const openProductModal = (product = null) => {
-    if (product) {
-      // Mode édition
-      setEditingItem(product);
-      setProductForm({
-        name: String(product.name || ''),
-        description: String(product.description || ''),
-        price: product.price != null ? String(product.price) : '',
-        stock: product.stock != null ? String(product.stock) : ''
-      });
-      setImageFile(null);
-      // Vérifier si l'image actuelle est une URL
-      const isUrl = product.image_path && product.image_path.startsWith('http');
-      setUseImageUrl(isUrl);
-      setImageUrl(isUrl ? String(product.image_path) : '');
+  // --- LOGIQUE PRODUITS ---
+  const handleSaveProduct = (e) => {
+    e.preventDefault();
+    const payload = { ...productForm };
+    
+    // Si c'est une édition
+    if (editingProduct) {
+        axiosClient.put(`/admin/products/${editingProduct.id}`, payload)
+            .then(() => { alert("Produit modifié"); closeProductModal(); fetchData(); })
+            .catch(err => alert("Erreur modification"));
     } else {
-      // Mode création
-      setEditingItem(null);
-      setProductForm({ name: '', description: '', price: '', stock: '' });
-      setImageFile(null);
-      setImageUrl('');
-      setUseImageUrl(false);
+        // Création
+        axiosClient.post('/admin/products', payload)
+            .then(() => { alert("Produit créé"); closeProductModal(); fetchData(); })
+            .catch(err => alert("Erreur création"));
     }
+  };
+
+  const deleteProduct = (id) => {
+    if(confirm("Supprimer ce produit ?")) {
+        axiosClient.delete(`/admin/products/${id}`).then(fetchData);
+    }
+  };
+
+  const openProductModal = (product = null) => {
+    setEditingProduct(product);
+    setProductForm(product || { name: '', description: '', price: '', stock: '', image_url: '' });
     setIsProductModalOpen(true);
   };
 
-  const handleProductSubmit = (e) => {
-    e.preventDefault();
-    
-    if (useImageUrl && imageUrl) {
-      // Validation de l'URL
-      try {
-        new URL(imageUrl);
-      } catch {
-        alert("L'URL de l'image n'est pas valide. Veuillez entrer une URL complète (ex: https://exemple.com/image.jpg)");
-        return;
-      }
-      
-      if (imageUrl.length > 500) {
-        alert("L'URL de l'image est trop longue (maximum 500 caractères). Veuillez utiliser une URL plus courte ou uploader un fichier.");
-        return;
-      }
-      
-      // Utilisation d'une URL d'image
-      const data = {
-        name: productForm.name,
-        description: productForm.description,
-        price: productForm.price,
-        stock: productForm.stock,
-        image_url: imageUrl
-      };
-
-      if (editingItem) {
-        // Modification
-        axiosClient.put(`/admin/products/${editingItem.id}`, data)
-          .then(() => {
-            alert('Produit modifié avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                err.response?.data?.errors?.image_url?.[0] || 
-                                "Erreur lors de la modification";
-            alert(errorMessage);
-          });
-      } else {
-        // Création
-        axiosClient.post('/admin/products', data)
-          .then(() => {
-            alert('Produit ajouté avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                err.response?.data?.errors?.image_url?.[0] || 
-                                "Erreur lors de l'ajout";
-            alert(errorMessage);
-          });
-      }
-    } else if (imageFile) {
-      // Utilisation d'un fichier uploadé
-      const formData = new FormData();
-      formData.append('name', productForm.name);
-      formData.append('description', productForm.description);
-      formData.append('price', productForm.price);
-      formData.append('stock', productForm.stock);
-      formData.append('image', imageFile);
-
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
-
-      if (editingItem) {
-        // Modification
-        axiosClient.put(`/admin/products/${editingItem.id}`, formData, config)
-          .then(() => {
-            alert('Produit modifié avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                err.response?.data?.errors?.image?.[0] || 
-                                "Erreur lors de la modification";
-            alert(errorMessage);
-          });
-      } else {
-        // Création
-        axiosClient.post('/admin/products', formData, config)
-          .then(() => {
-            alert('Produit ajouté avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                err.response?.data?.errors?.image?.[0] || 
-                                "Erreur lors de l'ajout";
-            alert(errorMessage);
-          });
-      }
-    } else {
-      // Aucune image fournie
-      const data = {
-        name: productForm.name,
-        description: productForm.description,
-        price: productForm.price,
-        stock: productForm.stock
-      };
-
-      if (editingItem) {
-        // Modification
-        axiosClient.put(`/admin/products/${editingItem.id}`, data)
-          .then(() => {
-            alert('Produit modifié avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                "Erreur lors de la modification";
-            alert(errorMessage);
-          });
-      } else {
-        // Création
-        axiosClient.post('/admin/products', data)
-          .then(() => {
-            alert('Produit ajouté avec succès !');
-            setIsProductModalOpen(false);
-            fetchData();
-          })
-          .catch(err => {
-            const errorMessage = err.response?.data?.message || 
-                                "Erreur lors de l'ajout";
-            alert(errorMessage);
-          });
-      }
-    }
+  const closeProductModal = () => {
+    setIsProductModalOpen(false);
+    setEditingProduct(null);
   };
 
-  const handleDeleteProduct = (id) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-      axiosClient.delete(`/admin/products/${id}`)
-        .then(() => {
-          alert('Produit supprimé !');
-          fetchData();
-        })
-        .catch(err => alert("Erreur lors de la suppression"));
-    }
-  };
-
-  // ============================================
-  // GESTION DES COMMANDES
-  // ============================================
-  const openOrderModal = (order = null) => {
-    if (order) {
-      setEditingItem(order);
-      setOrderForm({ status: order.status || 'pending' });
-    } else {
-      setEditingItem(null);
-      setOrderForm({ status: 'pending' });
-    }
-    setIsOrderModalOpen(true);
-  };
-
-  const handleOrderSubmit = (e) => {
-    e.preventDefault();
-    axiosClient.put(`/admin/orders/${editingItem.id}/status`, { status: orderForm.status })
+  // --- LOGIQUE COMMANDES ---
+  const updateOrderStatus = (id, status) => {
+    axiosClient.put(`/admin/orders/${id}/status`, { status })
       .then(() => {
-        alert('Statut de la commande mis à jour !');
-        setIsOrderModalOpen(false);
         fetchData();
-      })
-      .catch(err => alert("Erreur lors de la mise à jour"));
-  };
-
-  const handleDeleteOrder = (id) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette commande ?")) {
-      axiosClient.delete(`/admin/orders/${id}`)
-        .then(() => {
-          alert('Commande supprimée !');
-          fetchData();
-        })
-        .catch(err => alert("Erreur lors de la suppression"));
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      processing: "bg-blue-100 text-blue-800",
-      shipped: "bg-purple-100 text-purple-800",
-      delivered: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800"
-    };
-    return `px-2 py-1 rounded-full text-xs font-bold uppercase ${colors[status] || 'bg-gray-100'}`;
-  };
-
-  // ============================================
-  // GESTION DES UTILISATEURS
-  // ============================================
-  const openUserModal = (user = null) => {
-    if (user) {
-      setEditingItem(user);
-      setUserForm({
-        name: user.name || '',
-        email: user.email || '',
-        role: user.role || 'user',
-        password: '' // On ne pré-remplit jamais le mot de passe
+        // Mettre à jour l'ordre sélectionné si ouvert
+        if (selectedOrder && selectedOrder.id === id) {
+            setSelectedOrder({ ...selectedOrder, status });
+        }
       });
-    } else {
-      setEditingItem(null);
-      setUserForm({ name: '', email: '', role: 'user', password: '' });
-    }
-    setIsUserModalOpen(true);
   };
 
-  const handleUserSubmit = (e) => {
-    e.preventDefault();
-    const data = { ...userForm };
-    if (!data.password) delete data.password; // On n'envoie le mot de passe que s'il est rempli
-
-    if (editingItem) {
-      // Modification
-      axiosClient.put(`/users/${editingItem.id}`, data)
-        .then(() => {
-          alert('Utilisateur modifié avec succès !');
-          setIsUserModalOpen(false);
-          fetchData();
-        })
-        .catch(err => alert("Erreur lors de la modification"));
-    } else {
-      // Création (via register)
-      axiosClient.post('/register', { ...data, password: data.password || 'password123' })
-        .then(() => {
-          alert('Utilisateur créé avec succès !');
-          setIsUserModalOpen(false);
-          fetchData();
-        })
-        .catch(err => alert("Erreur lors de la création"));
-    }
+  const openOrderDetails = (order) => {
+    setSelectedOrder(order);
+    setIsOrderDetailsOpen(true);
   };
 
-  const handleDeleteUser = (id) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      axiosClient.delete(`/users/${id}`)
-        .then(() => {
-          alert('Utilisateur supprimé !');
-          fetchData();
-        })
-        .catch(err => alert("Erreur lors de la suppression"));
-    }
+  // Helper pour parser le contenu JSON du panier
+  const getOrderItems = (content) => {
+    try {
+        return typeof content === 'string' ? JSON.parse(content) : content;
+    } catch { return []; }
   };
 
-  const totalRevenue = orders.reduce((acc, order) => acc + Number(order.total_price || 0), 0);
+  // Stats
+  const revenue = orders.reduce((acc, o) => acc + Number(o.total_price), 0);
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)] bg-gray-50 font-sans text-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-[#f3f4f6] font-sans overflow-hidden">
       
-      {/* --- SIDEBAR --- */}
-      <aside className="w-full lg:w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-10 lg:static fixed lg:translate-x-0 -translate-x-full transition-transform duration-300">
-        <div className="h-16 flex items-center px-6 border-b border-gray-100">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Menu Gestion</span>
+      {/* SIDEBAR NOIRE (Style Dashboard Pro) */}
+      <aside className="w-64 bg-[#1e293b] text-white flex flex-col flex-shrink-0">
+        <div className="h-16 flex items-center px-6 border-b border-gray-700">
+            <span className="font-black text-xl tracking-tight text-white">ADMIN<span className="text-blue-400">PANEL</span></span>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {[
-            { id: 'dashboard', icon: '📊', label: 'Vue d\'ensemble' },
-            { id: 'products', icon: '📦', label: 'Produits' },
-            { id: 'orders', icon: '🛒', label: 'Commandes' },
-            { id: 'users', icon: '👥', label: 'Utilisateurs' },
-          ].map((item) => (
-            <button 
-              key={item.id}
-              onClick={() => setActiveTab(item.id)} 
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === item.id 
-                ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <span className="text-lg">{item.icon}</span>
-              {item.label}
+        <nav className="flex-1 py-6 space-y-1">
+            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center px-6 py-3 hover:bg-gray-700 transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white border-r-4 border-blue-300' : 'text-gray-400'}`}>
+                <span className="mr-3">📊</span> Vue d'ensemble
             </button>
-          ))}
+            <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center px-6 py-3 hover:bg-gray-700 transition ${activeTab === 'orders' ? 'bg-blue-600 text-white border-r-4 border-blue-300' : 'text-gray-400'}`}>
+                <span className="mr-3">📦</span> Commandes <span className="ml-auto bg-red-500 text-white text-[10px] px-2 rounded-full">{pendingOrders}</span>
+            </button>
+            <button onClick={() => setActiveTab('products')} className={`w-full flex items-center px-6 py-3 hover:bg-gray-700 transition ${activeTab === 'products' ? 'bg-blue-600 text-white border-r-4 border-blue-300' : 'text-gray-400'}`}>
+                <span className="mr-3">🏷️</span> Produits
+            </button>
+            <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-6 py-3 hover:bg-gray-700 transition ${activeTab === 'users' ? 'bg-blue-600 text-white border-r-4 border-blue-300' : 'text-gray-400'}`}>
+                <span className="mr-3">👥</span> Clients
+            </button>
         </nav>
+
+        <div className="p-4 border-t border-gray-700">
+            <button onClick={() => navigate('/')} className="w-full text-sm text-gray-400 hover:text-white flex items-center gap-2">
+                <span>← Retour au site</span>
+            </button>
+        </div>
       </aside>
 
-      {/* --- CONTENU PRINCIPAL --- */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      {/* CONTENU PRINCIPAL */}
+      <main className="flex-1 overflow-y-auto p-8">
         
-        {/* TOP BAR */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-8 shadow-sm flex-shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 capitalize">
-              {activeTab === 'dashboard' ? 'Tableau de bord' : activeTab}
-            </h2>
-            <p className="text-xs text-gray-500">Aperçu en temps réel</p>
-          </div>
-          {/* Boutons d'action contextuels */}
-          {activeTab === 'products' && (
-            <button 
-              onClick={() => openProductModal()} 
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-2"
-            >
-              <span>+</span> Ajouter
-            </button>
-          )}
-          {activeTab === 'users' && (
-            <button 
-              onClick={() => openUserModal()} 
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-2"
-            >
-              <span>+</span> Ajouter
-            </button>
-          )}
-        </header>
-
-        {/* ZONE DE CONTENU */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50">
-          
-          {/* VUE DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6 max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Revenu" value={`${totalRevenue.toFixed(2)} €`} icon="💰" trend="up" color="bg-emerald-500" />
-                <StatCard title="Commandes" value={orders.length} icon="📦" trend="up" color="bg-blue-500" />
-                <StatCard title="Produits" value={products.length} icon="🏷️" trend="neutral" color="bg-purple-500" />
-                <StatCard title="Clients" value={users.length} icon="👤" trend="up" color="bg-orange-500" />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 font-bold text-gray-700">Dernières Commandes</div>
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500">
-                      <tr>
-                        <th className="px-6 py-3">ID</th>
-                        <th className="px-6 py-3">Client</th>
-                        <th className="px-6 py-3 text-right">Montant</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {orders.slice(0, 5).map(o => (
-                        <tr key={o.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-3 font-medium text-indigo-600">#{o.id}</td>
-                          <td className="px-6 py-3">{o.user ? o.user.name : 'Invité'}</td>
-                          <td className="px-6 py-3 text-right font-bold">{o.total_price} €</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+        {/* DASHBOARD TAB */}
+        {activeTab === 'dashboard' && (
+            <div className="space-y-6">
+                <h1 className="text-2xl font-bold text-gray-800">Tableau de bord</h1>
                 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 font-bold text-gray-700">État du Stock</div>
-                  <div className="p-0">
-                    {products.length === 0 ? (
-                      <p className="p-6 text-gray-400">Aucun produit</p>
-                    ) : (
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500">
-                          <tr>
-                            <th className="px-6 py-3">Produit</th>
-                            <th className="px-6 py-3 text-right">Stock</th>
-                          </tr>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <StatCard title="Chiffre d'affaires" value={`${revenue.toFixed(2)} €`} icon="💰" color="bg-green-500" />
+                    <StatCard title="Commandes" value={orders.length} icon="🛍️" color="bg-blue-500" />
+                    <StatCard title="Produits" value={products.length} icon="📦" color="bg-purple-500" />
+                    <StatCard title="Clients" value={users.length} icon="👤" color="bg-orange-500" />
+                </div>
+
+                <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
+                    <h3 className="font-bold text-gray-700 mb-4">Dernières commandes</h3>
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-500 uppercase">
+                            <tr>
+                                <th className="p-3">ID</th>
+                                <th className="p-3">Client</th>
+                                <th className="p-3">Date</th>
+                                <th className="p-3">Total</th>
+                                <th className="p-3">Statut</th>
+                            </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {products.slice(0, 5).map(p => (
-                            <tr key={p.id}>
-                              <td className="px-6 py-3 font-medium">{p.name}</td>
-                              <td className="px-6 py-3 text-right">
-                                <span className={`px-2 py-1 rounded-full text-xs ${p.stock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                  {p.stock}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                            {orders.slice(0, 5).map(o => (
+                                <tr key={o.id}>
+                                    <td className="p-3 font-mono">#{o.id}</td>
+                                    <td className="p-3 font-bold">{o.user ? o.user.name : 'Invité'}</td>
+                                    <td className="p-3">{new Date(o.created_at).toLocaleDateString()}</td>
+                                    <td className="p-3">{o.total_price} €</td>
+                                    <td className="p-3">
+                                        <Badge color={o.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                                            {o.status}
+                                        </Badge>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
-                      </table>
-                    )}
-                  </div>
+                    </table>
                 </div>
-              </div>
             </div>
-          )}
+        )}
 
-          {/* VUE PRODUITS */}
-          {activeTab === 'products' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[600px]">
-                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 w-16">Img</th>
-                    <th className="px-6 py-4">Nom</th>
-                    <th className="px-6 py-4">Prix</th>
-                    <th className="px-6 py-4">Stock</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {products.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 group">
-                                    <td className="px-6 py-2">
-                        <div className="w-10 h-10 rounded bg-gray-100 border flex items-center justify-center overflow-hidden">
-                          {p.image_path ? (
-                            <img 
-                              src={p.image_path.startsWith('http') ? p.image_path : storageUrl + p.image_path} 
-                              className="w-full h-full object-cover" 
-                              alt={p.name}
-                              loading="lazy"
-                              decoding="async"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '📷';
-                              }}
-                            />
-                          ) : (
-                            '📷'
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-2 font-medium text-gray-900">{p.name}</td>
-                      <td className="px-6 py-2 font-bold text-indigo-600">{p.price} €</td>
-                      <td className="px-6 py-2">
-                        <span className={`px-2 py-1 rounded text-xs ${p.stock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-600'}`}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="px-6 py-2 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => openProductModal(p)} 
-                            className="text-indigo-600 hover:text-indigo-800 p-1.5 hover:bg-indigo-50 rounded transition"
-                            title="Modifier"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduct(p.id)} 
-                            className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition"
-                            title="Supprimer"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* PRODUCTS TAB */}
+        {activeTab === 'products' && (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Gestion du Catalogue</h1>
+                    <button onClick={() => openProductModal()} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition flex items-center gap-2">
+                        <span>+</span> Ajouter un produit
+                    </button>
+                </div>
+
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-500 uppercase border-b border-gray-200">
+                            <tr>
+                                <th className="p-4 w-20">Image</th>
+                                <th className="p-4">Nom</th>
+                                <th className="p-4">Prix</th>
+                                <th className="p-4">Stock</th>
+                                <th className="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {products.map(p => (
+                                <tr key={p.id} className="hover:bg-gray-50">
+                                    <td className="p-4">
+                                        <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden border">
+                                            {p.image_path ? (
+                                                <img src={p.image_path.startsWith('http') ? p.image_path : storageUrl + p.image_path} className="w-full h-full object-cover" />
+                                            ) : '📷'}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 font-medium text-gray-900">{p.name}</td>
+                                    <td className="p-4 font-bold text-blue-600">{p.price} €</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded text-xs ${p.stock < 5 ? 'bg-red-100 text-red-700 font-bold' : 'bg-gray-100 text-gray-600'}`}>
+                                            {p.stock}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-right space-x-2">
+                                        <button onClick={() => openProductModal(p)} className="text-blue-600 hover:underline">Modifier</button>
+                                        <button onClick={() => deleteProduct(p.id)} className="text-red-500 hover:underline">Supprimer</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-          )}
+        )}
 
-          {/* VUE COMMANDES */}
-          {activeTab === 'orders' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[600px]">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
-                  <tr>
-                    <th className="px-6 py-4">ID</th>
-                    <th className="px-6 py-4">Client</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Total</th>
-                    <th className="px-6 py-4">Statut</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {orders.map(o => (
-                    <tr key={o.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-bold text-indigo-600">#{o.id}</td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium">{o.user ? o.user.name : 'Invité'}</div>
-                        <div className="text-xs text-gray-500">{o.user ? o.user.email : ''}</div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">{new Date(o.created_at).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 font-bold">{o.total_price} €</td>
-                      <td className="px-6 py-4">
-                        <span className={getStatusBadge(o.status || 'pending')}>
-                          {o.status || 'pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => openOrderModal(o)} 
-                            className="text-indigo-600 hover:text-indigo-800 p-1.5 hover:bg-indigo-50 rounded transition"
-                            title="Modifier le statut"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteOrder(o.id)} 
-                            className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition"
-                            title="Supprimer"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* ORDERS TAB */}
+        {activeTab === 'orders' && (
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Suivi des Commandes</h1>
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-500 uppercase border-b border-gray-200">
+                            <tr>
+                                <th className="p-4">Réf</th>
+                                <th className="p-4">Client</th>
+                                <th className="p-4">Date</th>
+                                <th className="p-4">Total</th>
+                                <th className="p-4">Statut</th>
+                                <th className="p-4 text-right">Détails</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {orders.map(o => (
+                                <tr key={o.id} className="hover:bg-gray-50">
+                                    <td className="p-4 font-mono text-gray-500">#{o.id}</td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-gray-900">{o.user ? o.user.name : 'Client Supprimé'}</div>
+                                        <div className="text-xs text-gray-500">{o.user ? o.user.email : ''}</div>
+                                    </td>
+                                    <td className="p-4">{new Date(o.created_at).toLocaleDateString()}</td>
+                                    <td className="p-4 font-bold">{o.total_price} €</td>
+                                    <td className="p-4">
+                                        <select 
+                                            value={o.status} 
+                                            onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+                                            className={`border rounded px-2 py-1 text-xs font-bold uppercase cursor-pointer outline-none ${
+                                                o.status === 'delivered' ? 'bg-green-100 text-green-800 border-green-200' : 
+                                                o.status === 'shipped' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                                'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                            }`}
+                                        >
+                                            <option value="pending">En attente</option>
+                                            <option value="processing">Préparation</option>
+                                            <option value="shipped">Expédié</option>
+                                            <option value="delivered">Livré</option>
+                                            <option value="cancelled">Annulé</option>
+                                        </select>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <button onClick={() => openOrderDetails(o)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs font-bold transition">
+                                            Voir détails
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-          )}
+        )}
 
-          {/* VUE USERS */}
-          {activeTab === 'users' && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-6xl mx-auto overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[600px]">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
-                  <tr>
-                    <th className="px-6 py-4">Nom</th>
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Rôle</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium">{u.name}</td>
-                      <td className="px-6 py-4 text-gray-500">{u.email}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => openUserModal(u)} 
-                            className="text-indigo-600 hover:text-indigo-800 p-1.5 hover:bg-indigo-50 rounded transition"
-                            title="Modifier"
-                          >
-                            ✏️
-                          </button>
-                          {u.role !== 'admin' && (
-                            <button 
-                              onClick={() => handleDeleteUser(u.id)} 
-                              className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition"
-                              title="Supprimer"
-                            >
-                              🗑️
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      </main>
 
-        </main>
-      </div>
-
-      {/* MODAL PRODUIT */}
+      {/* MODAL PRODUIT (AJOUT/EDITION) */}
       <AnimatePresence>
         {isProductModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{opacity:0, scale:0.95}} 
-              animate={{opacity:1, scale:1}} 
-              exit={{opacity:0, scale:0.95}} 
-              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {editingItem ? 'Modifier le produit' : 'Ajouter un produit'}
-                </h3>
-                <button 
-                  onClick={() => setIsProductModalOpen(false)} 
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleProductSubmit} className="space-y-4">
-                {/* Choix entre fichier ou URL */}
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setUseImageUrl(false)}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      !useImageUrl 
-                        ? 'bg-indigo-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    📁 Upload fichier
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUseImageUrl(true)}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      useImageUrl 
-                        ? 'bg-indigo-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    🔗 URL image
-                  </button>
-                </div>
-                
-                {useImageUrl ? (
-                  <input 
-                    type="url" 
-                    placeholder="https://exemple.com/image.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <input 
-                    type="file" 
-                    onChange={(e) => setImageFile(e.target.files[0])} 
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border rounded-lg"
-                  />
-                )}
-                <input 
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Nom" 
-                  value={productForm.name} 
-                  onChange={e => setProductForm({...productForm, name: e.target.value})} 
-                  required
-                />
-                <textarea 
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Description" 
-                  value={productForm.description} 
-                  onChange={e => setProductForm({...productForm, description: e.target.value})} 
-                  rows="3"
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <input 
-                    className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                    type="number" 
-                    step="0.01"
-                    placeholder="Prix" 
-                    value={productForm.price} 
-                    onChange={e => setProductForm({...productForm, price: e.target.value})} 
-                    required
-                  />
-                  <input 
-                    className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                    type="number" 
-                    placeholder="Stock" 
-                    value={productForm.stock} 
-                    onChange={e => setProductForm({...productForm, stock: e.target.value})} 
-                    required
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition"
-                >
-                  {editingItem ? 'Modifier' : 'Ajouter'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+                    <h2 className="text-xl font-bold mb-4">{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</h2>
+                    <form onSubmit={handleSaveProduct} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">Nom</label>
+                            <input className="w-full border p-2 rounded" value={productForm.name} onChange={e=>setProductForm({...productForm, name: e.target.value})} required />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700">Prix</label>
+                                <input type="number" step="0.01" className="w-full border p-2 rounded" value={productForm.price} onChange={e=>setProductForm({...productForm, price: e.target.value})} required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700">Stock</label>
+                                <input type="number" className="w-full border p-2 rounded" value={productForm.stock} onChange={e=>setProductForm({...productForm, stock: e.target.value})} required />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">URL Image (ou chemin)</label>
+                            <input className="w-full border p-2 rounded" value={productForm.image_url || ''} onChange={e=>setProductForm({...productForm, image_url: e.target.value})} placeholder="https://..." />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">Description</label>
+                            <textarea className="w-full border p-2 rounded" rows="3" value={productForm.description} onChange={e=>setProductForm({...productForm, description: e.target.value})} />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                            <button type="button" onClick={closeProductModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Annuler</button>
+                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Enregistrer</button>
+                        </div>
+                    </form>
+                </motion.div>
+            </div>
         )}
       </AnimatePresence>
 
-      {/* MODAL COMMANDE */}
+      {/* MODAL DETAILS COMMANDE */}
       <AnimatePresence>
-        {isOrderModalOpen && editingItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{opacity:0, scale:0.95}} 
-              animate={{opacity:1, scale:1}} 
-              exit={{opacity:0, scale:0.95}} 
-              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Modifier le statut de la commande #{editingItem.id}</h3>
-                <button 
-                  onClick={() => setIsOrderModalOpen(false)} 
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleOrderSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                  <select 
-                    value={orderForm.status} 
-                    onChange={e => setOrderForm({status: e.target.value})}
-                    className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="pending">En attente</option>
-                    <option value="processing">En cours</option>
-                    <option value="shipped">Expédié</option>
-                    <option value="delivered">Livré</option>
-                    <option value="cancelled">Annulé</option>
-                  </select>
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition"
-                >
-                  Modifier
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        {isOrderDetailsOpen && selectedOrder && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} exit={{y:20, opacity:0}} className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    {/* Header Modal */}
+                    <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-800">Commande #{selectedOrder.id}</h2>
+                            <p className="text-sm text-gray-500">Du {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <button onClick={() => setIsOrderDetailsOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                    
+                    {/* Body Modal */}
+                    <div className="p-6 overflow-y-auto">
+                        
+                        {/* Info Client & Livraison */}
+                        <div className="grid grid-cols-2 gap-6 mb-8">
+                            <div className="bg-blue-50 p-4 rounded border border-blue-100">
+                                <h3 className="font-bold text-blue-800 text-sm mb-2 uppercase">Client</h3>
+                                <p className="font-bold">{selectedOrder.user?.name}</p>
+                                <p className="text-sm">{selectedOrder.user?.email}</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 className="font-bold text-gray-700 text-sm mb-2 uppercase">Livraison</h3>
+                                {/* Ici on simule l'adresse si elle n'est pas stockée en base, sinon on l'afficherait */}
+                                <p className="text-sm text-gray-600">
+                                    {selectedOrder.address_json ? JSON.parse(selectedOrder.address_json).street : "123 Rue de l'Exemple"} <br/>
+                                    {selectedOrder.address_json ? JSON.parse(selectedOrder.address_json).zip : "75000"} Paris
+                                </p>
+                            </div>
+                        </div>
 
-      {/* MODAL UTILISATEUR */}
-      <AnimatePresence>
-        {isUserModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{opacity:0, scale:0.95}} 
-              animate={{opacity:1, scale:1}} 
-              exit={{opacity:0, scale:0.95}} 
-              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {editingItem ? 'Modifier l\'utilisateur' : 'Ajouter un utilisateur'}
-                </h3>
-                <button 
-                  onClick={() => setIsUserModalOpen(false)} 
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleUserSubmit} className="space-y-4">
-                <input 
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Nom" 
-                  value={userForm.name} 
-                  onChange={e => setUserForm({...userForm, name: e.target.value})} 
-                  required
-                />
-                <input 
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                  type="email"
-                  placeholder="Email" 
-                  value={userForm.email} 
-                  onChange={e => setUserForm({...userForm, email: e.target.value})} 
-                  required
-                />
-                <select 
-                  value={userForm.role} 
-                  onChange={e => setUserForm({...userForm, role: e.target.value})}
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="user">Utilisateur</option>
-                  <option value="admin">Administrateur</option>
-                </select>
-                <input 
-                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                  type="password"
-                  placeholder={editingItem ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe"} 
-                  value={userForm.password} 
-                  onChange={e => setUserForm({...userForm, password: e.target.value})} 
-                  required={!editingItem}
-                />
-                <button 
-                  type="submit"
-                  className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition"
-                >
-                  {editingItem ? 'Modifier' : 'Ajouter'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
+                        {/* Liste Produits */}
+                        <h3 className="font-bold text-gray-800 mb-3 border-b pb-2">Contenu du colis</h3>
+                        <div className="space-y-3">
+                            {getOrderItems(selectedOrder.content).map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center py-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center text-xs">
+                                            {item.image_path ? <img src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} className="max-h-full" /> : '📷'}
+                                        </div>
+                                        <span className="font-medium text-gray-700">{item.name}</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900">{item.price} €</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Footer Modal */}
+                    <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+                        <div>
+                            <span className="text-gray-500 text-sm">Statut actuel: </span>
+                            <span className="font-bold uppercase text-blue-600">{selectedOrder.status}</span>
+                        </div>
+                        <div className="text-xl font-black text-gray-800">
+                            Total: {selectedOrder.total_price} €
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
         )}
       </AnimatePresence>
 
     </div>
   );
 }
-
-export default Admin;
