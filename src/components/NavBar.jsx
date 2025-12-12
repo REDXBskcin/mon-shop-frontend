@@ -33,9 +33,7 @@ function NavBar() {
           
           {/* 1. LOGO */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-2 group">
-            <div className="bg-white text-[#1D428A] font-black text-2xl px-2 py-1 rounded shadow-sm transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                LDLC
-            </div>
+            
             {/* Version mobile du logo si besoin */}
             <span className="font-bold text-xl tracking-tight hidden sm:block">BTS High-Tech</span>
           </Link>
