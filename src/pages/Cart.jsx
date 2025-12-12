@@ -1,137 +1,87 @@
 import { useContext } from 'react';
 import { CartContext } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 
 function Cart() {
-  const { cart } = useContext(CartContext);
+  const { cart, removeFromCart } = useContext(CartContext);
   const navigate = useNavigate();
-
-  // Vérifier si l'utilisateur est connecté
   const token = localStorage.getItem('token');
-  const isAuthenticated = !!token;
-
-  // Calcul du total
   const total = cart.reduce((acc, item) => acc + Number(item.price || 0), 0);
+  const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/`;
 
-  // Redirection vers la page de paiement ou connexion
-  const handleCheckout = () => {
-    if (isAuthenticated) {
-      navigate('/checkout');
-    } else {
-      navigate('/login');
-    }
-  };
+  if (cart.length === 0) {
+    return (
+        <div className="max-w-4xl mx-auto py-20 text-center">
+            <h2 className="text-3xl font-bold text-gray-300 mb-4">Votre panier est vide</h2>
+            <Link to="/" className="bg-[#1D428A] text-white px-6 py-2 rounded font-bold hover:bg-blue-800">Retourner à la boutique</Link>
+        </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 flex items-center gap-2">
-        <span>🛒</span> Votre Panier
-      </h1>
+    <div className="max-w-[1200px] mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold text-[#1D428A] uppercase mb-6 border-b pb-2">Mon Panier ({cart.length})</h1>
 
-      {cart.length === 0 ? (
-        // --- CAS PANIER VIDE (Joli message) ---
-        <div className="bg-white rounded-lg shadow-md p-6 sm:p-10 text-center">
-          <div className="text-6xl mb-4">😢</div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-2">Votre panier est vide</h2>
-          <p className="text-gray-500 mb-6 text-sm sm:text-base">Vous n'avez pas encore craqué pour nos super produits ?</p>
-          <Link to="/" className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition duration-300">
-            Retourner à la boutique
-          </Link>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* TABLEAU PRODUITS */}
+        <div className="flex-1 bg-white border border-gray-200 shadow-sm rounded overflow-hidden">
+            <table className="w-full text-left">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b">
+                    <tr>
+                        <th className="p-4">Produit</th>
+                        <th className="p-4 text-center">Prix</th>
+                        <th className="p-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                    {cart.map((item, index) => (
+                        <tr key={index}>
+                            <td className="p-4 flex items-center gap-4">
+                                <div className="w-16 h-16 border bg-white flex items-center justify-center p-1">
+                                    {item.image_path ? (
+                                        <img src={item.image_path.startsWith('http') ? item.image_path : storageUrl + item.image_path} className="max-h-full max-w-full" />
+                                    ) : '📷'}
+                                </div>
+                                <div>
+                                    <Link to={`/product/${item.id}`} className="font-bold text-[#1D428A] hover:underline block mb-1">
+                                        {item.name}
+                                    </Link>
+                                    <span className="text-xs text-green-600">En stock</span>
+                                </div>
+                            </td>
+                            <td className="p-4 text-center font-bold text-gray-800">{item.price} €</td>
+                            <td className="p-4 text-right">
+                                <button onClick={() => removeFromCart(index)} className="text-red-500 hover:text-red-700 text-sm underline">Supprimer</button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
-      ) : (
-        // --- CAS PANIER REMPLI ---
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          
-          {/* COLONNE GAUCHE : LISTE DES ARTICLES */}
-          <div className="lg:col-span-2 space-y-4">
-            <AnimatePresence mode="popLayout">
-              {cart.map((item, index) => (
-                <motion.div 
-                  key={`${item.id}-${index}`}
-                  layout
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ 
-                    opacity: 0, 
-                    x: -100, 
-                    scale: 0.8,
-                    transition: { duration: 0.3 }
-                  }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 300, 
-                    damping: 25,
-                    layout: { duration: 0.3 }
-                  }}
-                  className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    {/* Carré de couleur pour simuler une image */}
-                    <motion.div 
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                      className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0"
-                    >
-                      {item.name.charAt(0)}
-                    </motion.div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
-                      <p className="text-sm text-gray-500">Ref: {item.id}</p>
-                    </div>
-                  </div>
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                    className="font-bold text-indigo-600 text-lg sm:text-xl"
-                  >
-                    {item.price} €
-                  </motion.div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
 
-          {/* COLONNE DROITE : RÉCAPITULATIF COMMANDE */}
-          <div className="lg:col-span-1">
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-indigo-50 sticky top-24">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 border-b pb-2">Récapitulatif</h2>
-              
-              <div className="flex justify-between mb-2 text-gray-600 text-sm sm:text-base">
-                <span>Articles ({cart.length})</span>
-                <span>{total.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between mb-6 text-gray-600 text-sm sm:text-base">
-                <span>Livraison</span>
-                <span className="text-green-600 font-medium">Gratuite</span>
-              </div>
-
-              <div className="flex justify-between mb-6 text-xl sm:text-2xl font-bold text-gray-900 border-t pt-4">
-                <span>Total</span>
-                <span>{total.toFixed(2)} €</span>
-              </div>
-
-              <button 
-                onClick={handleCheckout}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-300 transform hover:scale-105 active:scale-95"
-              >
-                {isAuthenticated ? (
-                  <>Procéder au paiement 💳</>
-                ) : (
-                  <>Se connecter 🔐</>
-                )}
-              </button>
-              
-              <p className="text-xs text-center text-gray-400 mt-4">
-                Paiement sécurisé - Simulation BTS SIO
-              </p>
+        {/* TOTAL */}
+        <div className="w-full lg:w-80 bg-white border border-gray-200 shadow-sm p-6 rounded h-fit">
+            <div className="flex justify-between mb-2 text-sm">
+                <span>Sous-total HT</span>
+                <span>{(total * 0.8).toFixed(2)} €</span>
             </div>
-          </div>
-
+            <div className="flex justify-between mb-4 text-sm">
+                <span>TVA (20%)</span>
+                <span>{(total * 0.2).toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between mb-6 text-xl font-black text-[#1D428A] border-t pt-4">
+                <span>TOTAL TTC</span>
+                <span>{total.toFixed(2)} €</span>
+            </div>
+            
+            <button 
+                onClick={() => navigate(token ? '/checkout' : '/login')}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow transition uppercase"
+            >
+                Valider ma commande
+            </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

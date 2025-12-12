@@ -1,148 +1,64 @@
 import { useState } from 'react';
 import axiosClient from "../axios-client.js";
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import Toast from '../components/Toast';
 
-function Login() {
+export default function Login() {
   const [creds, setCreds] = useState({ email: '', password: '' });
   const navigate = useNavigate();
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-    
     axiosClient.post('/login', creds)
       .then(res => {
-        // Stockage du token
         localStorage.setItem('ACCESS_TOKEN', res.data.token);
-        // Stockage du token "token" aussi au cas où tu utilises les deux noms
         localStorage.setItem('token', res.data.token);
+        localStorage.setItem('role', res.data.user?.role || 'user');
         
-        let roleRecu = res.data.role;
-        // Gestion robuste du rôle
-        if (!roleRecu && res.data.user && res.data.user.role) roleRecu = res.data.user.role;
-        localStorage.setItem('role', roleRecu || 'user');
-        
-        // Afficher le toast de succès
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
-        
-        // --- NAVIGATION SANS RELOAD ---
-        setTimeout(() => {
-          if (roleRecu === 'admin') {
-            navigate('/admin'); // Redirection directe vers le dashboard admin
-          } else {
-            navigate('/');
-          }
-        }, 1000);
+        // Redirection rapide
+        if (res.data.user?.role === 'admin') navigate('/admin');
+        else navigate('/');
       })
-      .catch(err => {
-        setIsLoading(false);
-        console.error(err);
-        if (err.response && err.response.status === 422) {
-            setError("Identifiants incorrects.");
-        } else {
-            setError("Une erreur est survenue.");
-        }
-      });
+      .catch(() => setError("Identifiants incorrects"));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden font-sans text-white">
-      
-      {/* --- FOND ANIMÉ --- */}
-      <div className="absolute inset-0 z-0">
-        <motion.div 
-            animate={{ scale: [1, 1.15, 1], rotate: [0, 45, 0], x: [0, 50, 0] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-indigo-600/20 rounded-full blur-[100px] sm:blur-[120px] will-change-transform"
-        />
-        <motion.div 
-            animate={{ scale: [1, 1.2, 1], rotate: [0, -45, 0], y: [0, -50, 0] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-purple-600/15 rounded-full blur-[80px] sm:blur-[100px] will-change-transform"
-        />
-      </div>
+    <div className="min-h-[600px] flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded shadow-md border border-gray-200 w-full max-w-md">
+        <h1 className="text-2xl font-bold text-[#1D428A] mb-6 text-center uppercase border-b pb-4">Identification</h1>
+        
+        {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded text-sm">{error}</div>}
 
-      {/* --- CARTE DE CONNEXION --- */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-md p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl"
-      >
-        <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 mb-4 shadow-lg shadow-indigo-500/30">
-                <span className="text-3xl">🚀</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Adresse Email</label>
+                <input 
+                    type="email" 
+                    className="w-full border border-gray-300 p-2 rounded focus:border-blue-500 outline-none"
+                    value={creds.email}
+                    onChange={e => setCreds({...creds, email: e.target.value})}
+                    required
+                />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">Bon retour.</h2>
-            <p className="text-gray-400 mt-2 text-sm">Connectez-vous pour gérer vos commandes.</p>
-        </div>
-
-        {error && (
-            <motion.div initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: 'auto'}} className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {error}
-            </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-400 ml-1 uppercase tracking-wider">Email</label>
-                <div className="relative group">
-                    <input 
-                        type="email" required
-                        className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all group-hover:bg-gray-800/80"
-                        placeholder="nom@exemple.com"
-                        value={creds.email}
-                        onChange={(e) => setCreds({...creds, email: e.target.value})}
-                    />
-                </div>
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Mot de passe</label>
+                <input 
+                    type="password" 
+                    className="w-full border border-gray-300 p-2 rounded focus:border-blue-500 outline-none"
+                    value={creds.password}
+                    onChange={e => setCreds({...creds, password: e.target.value})}
+                    required
+                />
             </div>
-
-            <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-400 ml-1 uppercase tracking-wider">Mot de passe</label>
-                <div className="relative group">
-                    <input 
-                        type="password" required
-                        className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all group-hover:bg-gray-800/80"
-                        placeholder="••••••••"
-                        value={creds.password}
-                        onChange={(e) => setCreds({...creds, password: e.target.value})}
-                    />
-                </div>
-            </div>
-
-            <button 
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isLoading ? 'Connexion...' : 'Se connecter'}
+            <button className="w-full bg-[#1D428A] hover:bg-[#15326d] text-white font-bold py-3 rounded transition uppercase">
+                Se connecter
             </button>
         </form>
 
-        <p className="mt-8 text-center text-gray-400 text-sm">
-            Nouveau ici ?{' '}
-            <Link to="/register" className="font-bold text-white hover:text-indigo-300 transition underline decoration-indigo-500 decoration-2 underline-offset-4">
-                Créer un compte
-            </Link>
-        </p>
-      </motion.div>
-
-      {/* Toast de succès */}
-      <Toast 
-        show={showToast} 
-        message="Connexion réussie ! 🎉" 
-        type="success"
-        onClose={() => setShowToast(false)}
-      />
+        <div className="mt-6 text-center text-sm border-t pt-4">
+            Pas encore de compte ? <Link to="/register" className="text-blue-600 font-bold hover:underline">Créer un compte</Link>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default Login;

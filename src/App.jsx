@@ -4,7 +4,7 @@ import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import CartSidebar from './components/CartSidebar';
 
-// Lazy loading pour améliorer les performances
+// Lazy loading
 const Home = lazy(() => import('./pages/Home'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
@@ -12,43 +12,34 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
+// Nouvelles pages
 const ProductDetails = lazy(() => import('./pages/ProductDetails'));
+const Category = lazy(() => import('./pages/Category'));
 
 import './App.css';
 
-// Composant de chargement
 const LoadingSpinner = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-      <p className="text-gray-600 font-medium">Chargement...</p>
-    </div>
+  <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="text-[#1D428A] font-bold text-lg animate-pulse">Chargement...</div>
   </div>
 );
 
 function Layout({ children }) {
   const location = useLocation();
-  // On regarde si on est sur la page admin pour le footer et le padding
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      
-      {/* 1. LA NAVBAR EST MAINTENANT PARTOUT */}
+    <div className="min-h-screen bg-[#F2F4F8] flex flex-col font-sans text-gray-800">
       <NavBar />
-      
-      {/* 2. LE TIROIR PANIER AUSSI */}
       <CartSidebar />
       
-      {/* 3. CONTENU */}
-      {/* On ajoute toujours pt-20 car la navbar est fixed partout */}
-      <div className={`flex-grow pt-20`}>
+      {/* Marge top pour compenser le header fixe (NavBar h-32 approx) */}
+      <div className="flex-grow pt-32 sm:pt-36">
         <Suspense fallback={<LoadingSpinner />}>
           {children}
         </Suspense>
       </div>
 
-      {/* 4. FOOTER (Optionnel sur l'admin, souvent on le cache pour gagner de la place) */}
       {!isAdminRoute && <Footer />}
     </div>
   );
@@ -66,7 +57,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
+          
+          {/* Nouvelles Routes */}
           <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/category/:slug" element={<Category />} />
         </Routes>
       </Layout>
     </BrowserRouter>

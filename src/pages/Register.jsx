@@ -1,127 +1,102 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import axiosClient from '../axios-client';
-import Toast from '../components/Toast';
+import { useAuth } from '../context/AuthContext'; // On utilise le contexte
 
-function Register() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+export default function Register() {
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', password_confirmation: '' });
   const navigate = useNavigate();
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const { setToken, setUser } = useAuth(); // Import du contexte
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
 
     axiosClient.post('/register', formData)
-      .then(res => {
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-          navigate('/login');
-        }, 2000);
+      .then(({ data }) => {
+        setToken(data.token);
+        setUser(data.user);
+        navigate('/'); // Redirection accueil connecté
       })
       .catch(err => {
-        setIsLoading(false);
-        setError("Erreur : Email déjà pris ou mot de passe trop court.");
+        const response = err.response;
+        if (response && response.status === 422) {
+          // Gestion simplifiée des erreurs
+          setError(Object.values(response.data.errors).flat()[0]); 
+        } else {
+          setError("Une erreur est survenue.");
+        }
       });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden font-sans text-white">
-      
-      {/* --- FOND ANIMÉ --- */}
-      <div className="absolute inset-0 z-0">
-        <motion.div 
-            animate={{ scale: [1, 1.08, 1], x: [0, -30, 0] }}
-            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-[10%] right-[20%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] bg-cyan-600/15 rounded-full blur-[80px] sm:blur-[100px] will-change-transform"
-        />
-        <motion.div 
-            animate={{ scale: [1, 1.15, 1], x: [0, 30, 0] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-[10%] left-[10%] w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] bg-pink-600/15 rounded-full blur-[90px] sm:blur-[120px] will-change-transform"
-        />
-      </div>
+    <div className="min-h-[600px] flex items-center justify-center p-4 bg-[#F2F4F8]">
+      <div className="bg-white p-8 rounded shadow-md border border-gray-200 w-full max-w-lg">
+        <h1 className="text-2xl font-bold text-[#1D428A] mb-2 text-center uppercase">Créer un compte</h1>
+        <p className="text-center text-gray-500 text-sm mb-6 pb-4 border-b">Rejoignez la communauté High-Tech</p>
 
-      {/* --- CARTE INSCRIPTION --- */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-md p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl"
-      >
-        <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold tracking-tight">Créer un compte</h2>
-            <p className="text-gray-400 mt-2 text-sm">Rejoignez la communauté des devs.</p>
-        </div>
-
-        {error && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm">
-                {error}
-            </div>
-        )}
+        {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded text-sm font-medium">⚠️ {error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-            
-            <div className="group">
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Nom complet</label>
                 <input 
-                    type="text" required
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                    placeholder="Nom complet"
+                    type="text" 
+                    className="w-full border border-gray-300 p-2.5 rounded focus:border-[#1D428A] outline-none"
+                    placeholder="Jean Dupont"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
+                    required
                 />
             </div>
 
-            <div className="group">
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Adresse Email</label>
                 <input 
-                    type="email" required
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                    placeholder="Adresse Email"
+                    type="email" 
+                    className="w-full border border-gray-300 p-2.5 rounded focus:border-[#1D428A] outline-none"
+                    placeholder="jean@exemple.com"
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
+                    required
                 />
             </div>
 
-            <div className="group">
-                <input 
-                    type="password" required
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                    placeholder="Mot de passe (6+ caractères)"
-                    value={formData.password}
-                    onChange={e => setFormData({...formData, password: e.target.value})}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Mot de passe</label>
+                    <input 
+                        type="password" 
+                        className="w-full border border-gray-300 p-2.5 rounded focus:border-[#1D428A] outline-none"
+                        value={formData.password}
+                        onChange={e => setFormData({...formData, password: e.target.value})}
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Confirmation</label>
+                    <input 
+                        type="password" 
+                        className="w-full border border-gray-300 p-2.5 rounded focus:border-[#1D428A] outline-none"
+                        value={formData.password_confirmation}
+                        onChange={e => setFormData({...formData, password_confirmation: e.target.value})}
+                        required
+                    />
+                </div>
             </div>
 
-            <button 
-                disabled={isLoading}
-                className="w-full bg-white text-gray-900 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 mt-4"
-            >
-                {isLoading ? 'Création...' : 'S\'inscrire'}
-            </button>
+            <div className="pt-2">
+                <button className="w-full bg-[#1D428A] hover:bg-[#15326d] text-white font-bold py-3 rounded transition uppercase shadow-sm">
+                    Valider mon inscription
+                </button>
+            </div>
         </form>
 
-        <p className="mt-8 text-center text-gray-400 text-sm">
-            Déjà un compte ?{' '}
-            <Link to="/login" className="font-bold text-white hover:text-indigo-300 transition underline decoration-indigo-500 decoration-2 underline-offset-4">
-                Se connecter
-            </Link>
-        </p>
-      </motion.div>
-
-      {/* Toast de succès */}
-      <Toast 
-        show={showToast} 
-        message="Compte créé avec succès ! 🎉" 
-        type="success"
-        onClose={() => setShowToast(false)}
-      />
+        <div className="mt-6 text-center text-sm bg-gray-50 p-4 rounded border border-gray-100">
+            Vous avez déjà un compte ? <Link to="/login" className="text-[#1D428A] font-bold hover:underline">Se connecter</Link>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default Register;

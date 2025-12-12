@@ -2,107 +2,104 @@ import { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosClient from '../axios-client';
 import { CartContext } from '../context/CartContext';
-import { motion } from 'framer-motion';
 
-function ProductDetails() {
+export default function ProductDetails() {
   const { id } = useParams();
   const { addToCart } = useContext(CartContext);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('desc'); // desc, specs, reviews
+  
   const storageUrl = `${import.meta.env.VITE_API_BASE_URL}/storage/`;
 
   useEffect(() => {
-    window.scrollTo(0, 0); // Remonter en haut de page au chargement
+    window.scrollTo(0, 0);
     axiosClient.get(`/products/${id}`)
       .then(({ data }) => setProduct(data))
-      .catch(() => alert("Produit introuvable"))
+      .catch(() => {}) // Gérer erreur silencieusement ou rediriger
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-10 w-10 border-4 border-indigo-600 rounded-full border-t-transparent"></div></div>;
-  if (!product) return <div className="text-center py-20">Produit introuvable</div>;
+  if (loading) return <div className="p-10 text-center">Chargement...</div>;
+  if (!product) return <div className="p-10 text-center">Produit introuvable</div>;
 
   return (
-    <div className="bg-white min-h-screen font-sans">
-      {/* Fil d'ariane */}
-      <div className="max-w-7xl mx-auto px-4 py-4 text-sm text-gray-500">
-        <Link to="/" className="hover:text-indigo-600">Accueil</Link> / <span className="text-gray-900">{product.name}</span>
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* GALERIE IMAGE */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 flex items-center justify-center h-[500px] group overflow-hidden">
-            {product.image_path ? (
-               <img 
-                 src={product.image_path.startsWith('http') ? product.image_path : storageUrl + product.image_path} 
-                 alt={product.name} 
-                 className="max-h-full max-w-full object-contain transform group-hover:scale-110 transition duration-700 ease-in-out" 
-               />
-            ) : <span className="text-4xl">📷</span>}
-          </div>
-        </motion.div>
-
-        {/* INFO PRODUIT */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <span className="text-indigo-600 font-bold tracking-wider text-sm uppercase">Nouveau</span>
-          <h1 className="text-4xl font-black text-gray-900 mt-2 mb-4 leading-tight">{product.name}</h1>
-          
-          <div className="flex items-center gap-4 mb-6">
-            <span className="text-3xl font-bold text-gray-900">{product.price} €</span>
-            {product.stock > 0 ? (
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">En stock</span>
-            ) : (
-                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Rupture</span>
-            )}
-          </div>
-
-          <p className="text-gray-600 leading-relaxed mb-8 text-lg">
-            {product.description || "Aucune description détaillée disponible pour ce produit de haute technologie."}
-          </p>
-
-          <div className="flex gap-4 border-t border-gray-100 pt-8">
-            <button 
-                onClick={() => addToCart(product)}
-                className="flex-1 bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-indigo-600 transition shadow-xl shadow-indigo-500/10 active:scale-95"
-            >
-                Ajouter au panier
-            </button>
-            <button className="p-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition text-gray-500">
-                ❤️
-            </button>
-          </div>
-
-          {/* ONGLETS (Specs, Avis) */}
-          <div className="mt-12">
-            <div className="flex border-b border-gray-200 mb-6">
-                {['Description', 'Caractéristiques', 'Avis'].map((tab) => (
-                    <button 
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`pb-4 px-4 font-medium transition relative ${activeTab === tab ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                        {tab}
-                        {activeTab === tab && <motion.div layoutId="underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
-                    </button>
-                ))}
+    <div className="max-w-[1600px] mx-auto px-4 py-6 bg-white shadow-sm mt-4 mb-8 rounded border border-gray-200">
+        
+        {/* EN-TÊTE PRODUIT */}
+        <div className="border-b pb-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#1D428A] mb-2">{product.name}</h1>
+            <div className="text-sm text-gray-500 flex gap-4">
+                <span>Réf. constructeur : XYZ-123</span>
+                <span className="text-green-600 font-bold">En stock</span>
+                <span>Garantie 2 ans</span>
             </div>
-            <div className="text-gray-600">
-                {activeTab === 'Description' && <p>Détails approfondis sur {product.name}...</p>}
-                {activeTab === 'Caractéristiques' && (
-                    <ul className="space-y-2 list-disc pl-5">
-                        <li>Garantie constructeur 2 ans</li>
-                        <li>Livraison rapide 24/48h</li>
-                    </ul>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* COLONNE GAUCHE : IMAGE */}
+            <div className="lg:col-span-1 bg-white border border-gray-100 p-4 flex items-center justify-center min-h-[300px]">
+                {product.image_path ? (
+                    <img 
+                        src={product.image_path.startsWith('http') ? product.image_path : storageUrl + product.image_path} 
+                        alt={product.name}
+                        className="max-h-[400px] max-w-full object-contain"
+                    />
+                ) : (
+                    <div className="text-6xl text-gray-200">📷</div>
                 )}
-                {activeTab === 'Avis' && <p>⭐⭐⭐⭐⭐ (4.8/5) basé sur 12 avis.</p>}
             </div>
-          </div>
-        </motion.div>
-      </main>
+
+            {/* COLONNE CENTRE : DESCRIPTION */}
+            <div className="lg:col-span-1">
+                <h2 className="font-bold text-gray-800 text-lg mb-4 border-b border-gray-100 pb-2">Description</h2>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                    {product.description || "Aucune description détaillée disponible."}
+                </p>
+                
+                <div className="mt-6 bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-100">
+                    <p className="font-bold">Les points forts :</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                        <li>Performance exceptionnelle</li>
+                        <li>Rapport qualité/prix</li>
+                        <li>Fiabilité reconnue</li>
+                    </ul>
+                </div>
+            </div>
+
+            {/* COLONNE DROITE : PRIX & ACHAT (Box flottante) */}
+            <div className="lg:col-span-1">
+                <div className="bg-gray-50 border border-gray-200 p-6 rounded shadow-sm sticky top-24">
+                    <div className="text-3xl font-black text-[#1D428A] mb-2 text-right">
+                        {product.price} € <span className="text-xs text-gray-500 font-normal">TTC</span>
+                    </div>
+                    
+                    <div className="text-right text-xs text-gray-500 mb-6">
+                        + 5,99 € de frais de port
+                    </div>
+
+                    <button 
+                        onClick={() => addToCart(product)}
+                        className="w-full bg-[#1D428A] hover:bg-[#15326d] text-white font-bold py-4 rounded shadow transition transform hover:scale-[1.02] flex justify-center items-center gap-2"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        AJOUTER AU PANIER
+                    </button>
+
+                    <div className="mt-4 space-y-2 text-xs text-gray-600 border-t pt-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-green-500 text-lg">✓</span> Expédié demain
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-green-500 text-lg">✓</span> Retrait magasin gratuit
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-green-500 text-lg">✓</span> Satisfait ou remboursé 14j
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
   );
 }
-
-export default ProductDetails;
